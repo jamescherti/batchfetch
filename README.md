@@ -1,16 +1,6 @@
-# batchfetch - Efficiently clone or pull multiple Git repositories.
+# Batchfetch - Efficiently clone or pull multiple Git repositories.
 
 Efficiently clone or pull multiple Git repositories. Ideal for developers managing multiple projects or for downloading plugins or packages in bulk.
-
-## License
-
-Copyright (c) [James Cherti](https://www.jamescherti.com).
-
-Distributed under terms of the GNU General Public License, version 3.
-
-## Do you like batchfetch?
-
-Please [star batchfetch on GitHub](https://github.com/jamescherti/batchfetch).
 
 ## Installation
 
@@ -18,6 +8,16 @@ Please [star batchfetch on GitHub](https://github.com/jamescherti/batchfetch).
 sudo pip install git+https://github.com/jamescherti/batchfetch
 ```
 
+## License
+
+Copyright (c) [James Cherti](https://www.jamescherti.com).
+
+Distributed under terms of the GNU General Public License, version 3.
+
+## Do you like Batchfetch?
+
+[Star batchfetch on GitHub](https://github.com/jamescherti/batchfetch).
+
 ## Links
 
-- The GitHub repository of 'batchfetch': https://github.com/jamescherti/batchfetch
+- [The batchfetch Git repository](https://github.com/jamescherti/batchfetch)
