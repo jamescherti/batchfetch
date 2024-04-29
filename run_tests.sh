@@ -20,4 +20,4 @@ export PYTHONPATH="$(pwd)"
 exec pytest -v -v --cov=batchfetch --cov=tests \
   --cov-report=term \
   --cov-report=html:htmlcov \
-  tests/*
+  tests/test_*py
