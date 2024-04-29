@@ -1,6 +1,6 @@
 # Batchfetch - Efficiently clone or pull multiple Git repositories.
 
-## Important: This is still under development
+## Important: This project is still under development
 
 This project is still under development and is not functional yet.
 
@@ -18,13 +18,13 @@ sudo pip install git+https://github.com/jamescherti/batchfetch
 
 ## License
 
-Copyright (c) [James Cherti](https://www.jamescherti.com).
+Copyright (c) 2024 [James Cherti](https://www.jamescherti.com)
 
-Distributed under terms of the GNU General Public License, version 3.
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-## Do you like Batchfetch?
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-[Star batchfetch on GitHub](https://github.com/jamescherti/batchfetch).
+You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 ## Links
 
