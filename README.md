@@ -1,5 +1,13 @@
 # Batchfetch - Efficiently clone or pull multiple Git repositories.
 
+## Important: This is still under development
+
+This project is still under development and is not functional yet.
+
+It will be fully functional in a few days.
+
+## Introduction
+
 Efficiently clone or pull multiple Git repositories. Ideal for developers managing multiple projects or for downloading plugins or packages in bulk.
 
 ## Installation
