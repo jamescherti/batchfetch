@@ -63,7 +63,7 @@ Command line interface.
 options:
   -h, --help            show this help message and exit
   -p MAX_PROCS, --max-procs MAX_PROCS
-                        Run up to N Number of parallel git processes (Default: 3).
+                        Run up to N Number of parallel git processes (Default: 5).
   -v, --verbose         Enable verbose mode.
   -f BATCHFETCH_FILE, --batchfetch-file BATCHFETCH_FILE
                         Specify the batchfetch YAML file (default: './batchfetch.yaml').

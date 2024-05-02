@@ -205,8 +205,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description=desc, usage=usage)
 
     parser.add_argument(
-        "-p", "--max-procs", default="3", required=False,
-        help="Run up to N Number of parallel git processes (Default: 3).",
+        "-p", "--max-procs", default="5", required=False,
+        help="Run up to N Number of parallel git processes (Default: 5).",
     )
 
     parser.add_argument(
