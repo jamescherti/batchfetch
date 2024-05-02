@@ -84,7 +84,10 @@ class BatchFetchGit(BatchFetchBase):
                     self.values[BatchFetchGit.main_key])  # type: ignore
 
     def _git_ref(self, cwd: Union[None, Path] = None) -> str:
-        """Get the commit reference of HEAD."""
+        """Get the commit reference of HEAD.
+
+        The command will fail if the branch is detached.
+        """
         cmd = "git show-ref --head --verify HEAD"
         try:
             stdout, _ = run_simple(cmd, cwd=cwd, env=self.env)
@@ -204,23 +207,32 @@ class BatchFetchGit(BatchFetchBase):
         ignore_git_pull = False
         if not self["git_pull"]:
             ignore_git_pull = True
-        elif self["branch"]:
+
+        if self["branch"]:
+            ignore_git_pull = False
             # Check if the new branch exists
             try:
                 self._git_tags(self["branch"])
             except GitBranchDoesNotExist:
                 pass
             else:
-                # The branch exists
+                # The branch exists:
+                # 1. Ignore Git pull when the git reference is the same
+                # as the "branch:" key
+                try:
+                    commit_ref = self._git_ref(cwd=self.git_local_dir)
+                except subprocess.CalledProcessError:
+                    # Ignore git pull because the head is detached
+                    pass
+                else:
+                    if (self.current_branch and
+                        (commit_ref == self["branch"] or
+                         self.current_branch == self["branch"])):
+                        ignore_git_pull = True
 
-                # Ignore Git pull when the git reference is the same
-                commit_ref = self._git_ref(cwd=self.git_local_dir)
-                if (self.current_branch and
-                    (commit_ref == self["branch"] or
-                     self.current_branch == self["branch"])):
-                    ignore_git_pull = True
-                # Ignore Git pull if it is not a local branch
-                elif not self._git_is_local_branch(self["branch"]):
+                # 2. Ignore Git pull if it is not a local branch
+                if (not ignore_git_pull and
+                        not self._git_is_local_branch(self["branch"])):
                     ignore_git_pull = True
 
         if ignore_git_pull:
