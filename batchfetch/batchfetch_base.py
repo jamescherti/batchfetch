@@ -113,7 +113,7 @@ class BatchFetchBase:
 
         if not stdout.endswith("\n"):
             stdout += "\n"
-        self.add_output((" " * self.indent) + stdout)
+        self.add_output(stdout)
 
     def _run_pre_exec(self, cwd: os.PathLike = Path(".")):
         self._initialize_data()

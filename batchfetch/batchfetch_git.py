@@ -209,16 +209,19 @@ class BatchFetchGit(BatchFetchBase):
             try:
                 self._git_tags(self["branch"])
             except GitBranchDoesNotExist:
-                ignore_git_pull = False
+                pass
             else:
                 # The branch exists
-                ignore_git_pull = True
 
-            # Check if the new branch is different from the current one
-            commit_ref = self._git_ref(cwd=self.git_local_dir)
-            if self.current_branch and (commit_ref == self["branch"] or
-                                        self.current_branch == self["branch"]):
-                ignore_git_pull = True
+                # Ignore Git pull when the git reference is the same
+                commit_ref = self._git_ref(cwd=self.git_local_dir)
+                if (self.current_branch and
+                    (commit_ref == self["branch"] or
+                     self.current_branch == self["branch"])):
+                    ignore_git_pull = True
+                # Ignore Git pull if it is not a local branch
+                elif not self._git_is_local_branch(self["branch"]):
+                    ignore_git_pull = True
 
         if ignore_git_pull:
             self.add_output(self.indent_spaces +
@@ -243,6 +246,23 @@ class BatchFetchGit(BatchFetchBase):
                           env=self.env)
 
         return git_merge
+
+    def _git_is_local_branch(self, branch: str) -> bool:
+        try:
+            stdout, _ = run_simple(["git", "rev-parse", "--symbolic-full-name",
+                                    branch], env=self.env,
+                                   cwd=self.git_local_dir)
+            if not stdout:
+                return False
+
+            full_branch_name = stdout[0].strip()
+
+            if full_branch_name.startswith("refs/heads/"):
+                return True
+        except subprocess.CalledProcessError:
+            pass
+
+        return False
 
     def _git_tags(self, branch: str) -> List[str]:
         stdout: List[str] = []
