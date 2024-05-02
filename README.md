@@ -45,7 +45,7 @@ Execute the `batchfetch` command from the same directory as `batchfetch.yml` to 
 
 Here are the various options that `batchfetch` provides, along with descriptions of their usage:
 
-```sh
+```
 usage: batchfetch [--option] [args]
 
 Command line interface.
