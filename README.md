@@ -7,8 +7,10 @@ Efficiently clone or pull multiple Git repositories in parallel. Ideal for devel
 ## Installation
 
 ```
-sudo pip install git+https://github.com/jamescherti/batchfetch
+pip install --user batchfetch
 ```
+
+The pip command above will install the `batchfetch` executable in the directory `~/.local/bin/`.
 
 ## Example
 
@@ -51,4 +53,5 @@ You should have received a copy of the GNU General Public License along with thi
 
 ## Links
 
-- [The batchfetch Git repository](https://github.com/jamescherti/batchfetch)
+- [batchfetch @GitHub](https://github.com/jamescherti/batchfetch)
+- [batchfetch @Pypi](https://pypi.org/project/batchfetch/)
