@@ -184,7 +184,7 @@ class BatchFetchCli:
         else:
             if num_success == 0:
                 print("Already up to date.")
-            else:
+            elif not self.verbose:
                 print("Success.")
 
         return True
@@ -205,7 +205,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description=desc, usage=usage)
 
     parser.add_argument(
-        "-p", "--max-procs", default="5", required=False,
+        "-j", "--jobs", default="5", required=False,
         help="Run up to N Number of parallel git processes (Default: 5).",
     )
 
@@ -244,7 +244,7 @@ def command_line_interface():
 
     args = parse_args()
     downloader_cli = BatchFetchCli(verbose=args.verbose,
-                                   max_workers=int(args.max_procs))
+                                   max_workers=int(args.jobs))
 
     downloader_cli.load(args.batchfetch_file)
     os.chdir(os.path.dirname(args.batchfetch_file))
