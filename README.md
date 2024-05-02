@@ -37,7 +37,7 @@ tasks:
     delete: true
 ```
 
-Execute `batchfetch` from the same directory as `batchfetch.yml` to make it clone or update the local copies of the repositories above.
+Execute the `batchfetch` command from the same directory as `batchfetch.yml` to make it clone or update the local copies of the repositories above.
 
 ## License
 
