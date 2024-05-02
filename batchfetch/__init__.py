@@ -17,10 +17,7 @@
 #
 """The entry-point of batchfetch."""
 
-
-def command_line_interface():
-    """The command-line interface."""
-
+from .batchfetch_cli import command_line_interface
 
 if __name__ == "__main__":
     command_line_interface()

@@ -1,20 +1,42 @@
 # Batchfetch - Efficiently clone or pull multiple Git repositories.
 
-## Important: This project is still under development
-
-This project is still under development and is not functional yet.
-
-It will be fully functional in a few days.
-
 ## Introduction
 
-Efficiently clone or pull multiple Git repositories. Ideal for developers managing multiple projects or for downloading plugins or packages in bulk.
+Efficiently clone or pull multiple Git repositories in parallel. Ideal for developers managing multiple projects or for downloading plugins or packages in bulk.
 
 ## Installation
 
 ```
 sudo pip install git+https://github.com/jamescherti/batchfetch
 ```
+
+## Example
+
+Here is an example of `batchfetch.yaml` file:
+
+```yaml
+---
+
+tasks:
+  # This will clone the default branch of the repository to the
+  # general.el directory
+  - git: https://github.com/noctuid/general.el
+
+  # Clone the tag 1.5 of the consult repository
+  - git: https://github.com/minad/consult
+    branch: "1.5"
+
+  # Clone the repository to the another-name.el directory
+  - git: https://github.com/magnars/s.el
+    path: another-name.el
+    branch: dda84d38fffdaf0c9b12837b504b402af910d01d
+
+  # Delete impatient-mode
+  - git: https://github.com/skeeto/impatient-mode
+    delete: true
+```
+
+Execute `batchfetch` from the same directory as `batchfetch.yml` to make it clone or update the local copies of the repositories above.
 
 ## License
 

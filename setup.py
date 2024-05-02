@@ -16,8 +16,9 @@
 # this program. If not, see <https://www.gnu.org/licenses/>.
 #
 
-from setuptools import setup, find_packages
 from pathlib import Path
+
+from setuptools import find_packages, setup
 
 setup(
     name="batchfetch",
@@ -29,7 +30,11 @@ setup(
     url="https://github.com/jamescherti/batchfetch",
     author="James Cherti",
     python_requires=">=3.6, <4",
-    install_requires=[],
+    install_requires=[
+        "colorama",
+        "schema",
+        "setproctitle",
+    ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "License :: OSI Approved :: GNU General Public License (GPL)",
