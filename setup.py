@@ -22,8 +22,10 @@ from setuptools import find_packages, setup
 
 setup(
     name="batchfetch",
-    version="1.0.0",
+    version="1.0.1",
     packages=find_packages(),
+    description="Efficiently clone and pull multiple Git repositories.",
+    license="GPLv3",
     long_description=((Path(__file__).parent.resolve().joinpath("README.md"))
                       .read_text(encoding="utf-8")),
     long_description_content_type="text/markdown",
