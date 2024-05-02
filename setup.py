@@ -34,6 +34,7 @@ setup(
         "colorama",
         "schema",
         "setproctitle",
+        "PyYAML",
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
