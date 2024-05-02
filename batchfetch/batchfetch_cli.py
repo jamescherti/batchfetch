@@ -19,6 +19,7 @@
 
 import argparse
 import logging
+import os
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -201,19 +202,33 @@ def parse_args():
     """Parse the command line arguments."""
     desc = __doc__
     usage = "%(prog)s [--option] [args]"
-    parser = argparse.ArgumentParser(description=desc,
-                                     usage=usage)
+    parser = argparse.ArgumentParser(description=desc, usage=usage)
+
     parser.add_argument(
         "-p", "--max-procs", default="3", required=False,
-        help="Run up to N Number of parallel git fetch processes.",
+        help="Run up to N Number of parallel git processes (Default: 3).",
     )
 
     parser.add_argument(
         "-v", "--verbose", action="store_true", default=False,
-        help="Verbose mode.",
+        help="Enable verbose mode.",
+    )
+
+    parser.add_argument(
+        "-f",
+        "--batchfetch-file",
+        default="./batchfetch.yaml",
+        required=False,
+        help="Specify the batchfetch YAML file (default: './batchfetch.yaml').",
     )
 
     args = parser.parse_args()
+
+    if not Path(args.batchfetch_file).is_file():
+        print(f"Error: File not found: {args.batchfetch_file}",
+              file=sys.stderr)
+        sys.exit(1)
+
     return args
 
 
@@ -224,16 +239,16 @@ def command_line_interface():
                         format="%(asctime)s %(name)s: %(message)s")
 
     colorama.init()
-    setproctitle(subprocess.list2cmdline(
-        [Path(sys.argv[0]).name] + sys.argv[1:]
-    ))
+    setproctitle(subprocess.list2cmdline([Path(sys.argv[0]).name] +
+                                         sys.argv[1:]))
 
     args = parse_args()
-
-    path_batchfetch_yaml = "batchfetch.yaml"
     downloader_cli = BatchFetchCli(verbose=args.verbose,
                                    max_workers=int(args.max_procs))
-    downloader_cli.load(path_batchfetch_yaml)
+
+    downloader_cli.load(args.batchfetch_file)
+    os.chdir(os.path.dirname(args.batchfetch_file))
+
     try:
         if not downloader_cli.download():
             errno = 1

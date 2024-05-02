@@ -41,6 +41,23 @@ tasks:
 
 Execute the `batchfetch` command from the same directory as `batchfetch.yml` to make it clone or update the local copies of the repositories above.
 
+## Usage
+
+Here are the various options that `batchfetch` provides, along with descriptions of their usage:
+
+```sh
+usage: batchfetch [--option] [args]
+
+Command line interface.
+
+options:
+  -h, --help            show this help message and exit
+  -p MAX_PROCS, --max-procs MAX_PROCS
+                        Run up to N Number of parallel git processes (Default: 3).
+  -v, --verbose         Enable verbose mode.
+  -f BATCHFETCH_FILE, --batchfetch-file BATCHFETCH_FILE
+                        Specify the batchfetch YAML file (default: './batchfetch.yaml').
+```
 ## License
 
 Copyright (c) [James Cherti](https://www.jamescherti.com)
