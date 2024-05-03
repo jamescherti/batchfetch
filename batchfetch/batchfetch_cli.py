@@ -71,7 +71,7 @@ class BatchFetchCli:
             ]
         }
 
-    def _plugin_get(self, raw_data: dict) -> BatchFetchBase:
+    def _plugin_get(self, raw_data: dict) -> str:
         keyword_found = None
         for keyword in self.batchfetch_classes:
             if keyword in raw_data:
@@ -87,17 +87,17 @@ class BatchFetchCli:
                 f" have been found in: {raw_data}"
             raise BatchFetchError(err_str)
 
-        return self.batchfetch_classes[keyword_found]
+        return keyword_found
 
     def load(self, path: Path):
         try:
             with open(path, "r", encoding="utf-8") as fhandler:
                 yaml_dict = yaml.load(fhandler, Loader=yaml.FullLoader)
-                self.loads(dict(yaml_dict))
+                self._loads(dict(yaml_dict))
         except OSError as err:
             raise BatchFetchError(str(err)) from err
 
-    def loads(self, data: dict):
+    def _loads(self, data: dict):
         schema = Schema(self.cfg_schema)
         try:
             schema.validate(data)
@@ -120,12 +120,13 @@ class BatchFetchCli:
             return
 
         dict_local_dir = {}  # type: ignore
-        for git_repo_raw in data["tasks"]:
-            batchfetch_class = self._plugin_get(git_repo_raw)
+        for task in data["tasks"]:
+            keyword = self._plugin_get(task)
+            batchfetch_class = self.batchfetch_classes[keyword]
 
             try:
-                batchfetch_instance = batchfetch_class(
-                    data=git_repo_raw,
+                batchfetch_instance = batchfetch_class(  # type: ignore
+                    data=task,
                     options=self.cfg["options"],
                 )
                 self.cfg["tasks"].append(batchfetch_instance)
@@ -137,12 +138,13 @@ class BatchFetchCli:
                 err_str = ("more than one repository have the " +
                            "destination path '" +
                            str(batchfetch_instance["path"]) + "' (" +
-                           str(git_repo_raw[self.main_key]) + " and " +
+                           str(task[keyword]) + " and " +
                            str(dict_local_dir[batchfetch_instance["path"]]) +
                            ")")
                 raise BatchFetchError(err_str)
+
             dict_local_dir[batchfetch_instance["path"]] = \
-                batchfetch_instance[self.main_key]
+                batchfetch_instance[keyword]
 
     def run_tasks(self) -> bool:
         failed = []
@@ -193,9 +195,8 @@ class BatchFetchCli:
         if error:
             if failed:
                 print("Failed:")
-                for git_update_result in failed:
-                    print("  - url:", git_update_result[self.main_key])
-                    print("    dir:", git_update_result["path"])
+                for failed_result in failed:
+                    print("  -", failed_result["path"])
             else:
                 print("Failed.")
 
@@ -217,7 +218,7 @@ def parse_args():
 
     parser.add_argument(
         "-j", "--jobs", default="5", required=False,
-        help="Run up to N Number of parallel git processes (Default: 5).",
+        help="Run up to N Number of parallel processes (Default: 5).",
     )
 
     parser.add_argument(
