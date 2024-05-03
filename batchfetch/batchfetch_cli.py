@@ -48,11 +48,11 @@ class BatchFetchCli:
         self._logger = logging.getLogger(self.__class__.__name__)
         self.dirs_relative_to_batchfetch: Set[str] = set()
 
-        self.batchfetch_schemas: Dict[str, BatchFetchBase] = {}
         self.main_key = "git"
 
-        self.batchfetch_schemas = {}
-        self.batchfetch_classes = {}
+        # Plugin
+        self.batchfetch_schemas: Dict[Any, Any] = {}
+        self.batchfetch_classes: Dict[str, BatchFetchBase] = {}
         self.cfg_schema: Dict[Any, Any] = {}
         self._plugin_add("git", BatchFetchGit)
 
@@ -107,7 +107,6 @@ class BatchFetchCli:
 
         self.cfg = {
             "options": {"clone_args": []},
-            # TODO: Make this added automatically
             "tasks": [],
         }
 
@@ -157,13 +156,12 @@ class BatchFetchCli:
         try:
             self.dirs_relative_to_batchfetch = set()
 
-            # TODO: Make adding to all downloads automatic
-            all_downloads = self.cfg["tasks"]
-            for download_item in all_downloads:
-                self.dirs_relative_to_batchfetch.add(str(download_item["path"]))
-                if not download_item["delete"]:
-                    self.managed_filenames.add(download_item["path"])
-                threads.append(executor_update.submit(download_item.update))
+            all_tasks = self.cfg["tasks"]
+            for task in all_tasks:
+                self.dirs_relative_to_batchfetch.add(str(task["path"]))
+                if not task["delete"]:
+                    self.managed_filenames.add(task["path"])
+                threads.append(executor_update.submit(task.update))
 
             for future in as_completed(threads):
                 data = future.result()
@@ -209,14 +207,6 @@ class BatchFetchCli:
                 print("Success.")
 
         return True
-
-    # def check_managed_directories(self):
-    #     # managed_downloads = {Path(item).resolve()
-    #     #                      for item in self.managed_filenames}
-    #     # managed_directories = {item.parent
-    #     #                        for item in managed_downloads}
-    #     # TODO Implement checker
-    #     pass
 
 
 def parse_args():
@@ -264,14 +254,14 @@ def command_line_interface():
                                          sys.argv[1:]))
 
     args = parse_args()
-    downloader_cli = BatchFetchCli(verbose=args.verbose,
+    batchfetch_cli = BatchFetchCli(verbose=args.verbose,
                                    max_workers=int(args.jobs))
 
-    downloader_cli.load(args.batchfetch_file)
+    batchfetch_cli.load(args.batchfetch_file)
     os.chdir(os.path.dirname(args.batchfetch_file))
 
     try:
-        if not downloader_cli.run_tasks():
+        if not batchfetch_cli.run_tasks():
             errno = 1
     except KeyboardInterrupt:
         print("Interrupted.", file=sys.stderr)
@@ -279,7 +269,5 @@ def command_line_interface():
     except BatchFetchError as err:
         print(f"Error: {err}.", file=sys.stderr)
         errno = 1
-    # else:
-    #     downloader_cli.check_managed_directories()
 
     sys.exit(errno)
