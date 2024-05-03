@@ -24,7 +24,7 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Set
+from typing import Any, Dict, Set, TypeVar
 
 import colorama
 import yaml  # type: ignore
@@ -32,30 +32,12 @@ from colorama import Fore
 from schema import Optional, Or, Schema, SchemaError
 from setproctitle import setproctitle
 
-from .batchfetch_base import BatchFetchError
+from .batchfetch_base import BatchFetchBase, BatchFetchError
 from .batchfetch_git import BatchFetchGit
 
 
 class BatchFetchCli:
     """Command-line-interface that downloads."""
-
-    main_key = "git"
-
-    # TODO: Make this automatic
-    empty_downloader_git = BatchFetchGit(
-        data={main_key: "http://www.domain.com"},
-        options={},
-    )
-    empty_downloader_git.validate_schema()  # Gen structure
-
-    cfg_schema = {
-        Optional("options"):
-            empty_downloader_git.global_options_schema,  # type: ignore
-        # TODO: Make this added automatically
-        Optional("tasks"): [
-            Or(str, empty_downloader_git.item_schema)
-        ]
-    }
 
     def __init__(self, max_workers: int, verbose: bool = False):
         self.cfg: dict = {}
@@ -66,6 +48,47 @@ class BatchFetchCli:
         self._logger = logging.getLogger(self.__class__.__name__)
         self.dirs_relative_to_batchfetch: Set[str] = set()
 
+        self.batchfetch_schemas: Dict[str, BatchFetchBase] = {}
+        self.main_key = "git"
+
+        self.batchfetch_schemas = {}
+        self.batchfetch_classes = {}
+        self.cfg_schema: Dict[Any, Any] = {}
+        self._plugin_add("git", BatchFetchGit)
+
+    def _plugin_add(self, keyword: str, batchfetch_class: Any):
+        batchfetch_instance = batchfetch_class(data={},
+                                               options={})
+        batchfetch_instance.validate_schema()
+
+        self.batchfetch_schemas[keyword] = batchfetch_instance.item_schema
+        self.batchfetch_classes[keyword] = batchfetch_class
+        self.cfg_schema = {
+            Optional("options"):
+                batchfetch_instance.global_options_schema,  # type: ignore
+            Optional("tasks"): [
+                Or(*list(self.batchfetch_schemas.values()))
+            ]
+        }
+
+    def _plugin_get(self, raw_data: dict) -> BatchFetchBase:
+        keyword_found = None
+        for keyword in self.batchfetch_classes:
+            if keyword in raw_data:
+                if keyword_found is not None:
+                    err_str = (f"The keywords {keyword} and {keyword_found} "
+                               f"are mutually exclusive. Error in: {raw_data}")
+                    raise BatchFetchError(err_str)
+                keyword_found = keyword
+
+        if not keyword_found:
+            err_str = "None of the keywords " + \
+                ", ".join(self.batchfetch_classes.keys()) + \
+                f" have been found in: {raw_data}"
+            raise BatchFetchError(err_str)
+
+        return self.batchfetch_classes[keyword_found]
+
     def load(self, path: Path):
         try:
             with open(path, "r", encoding="utf-8") as fhandler:
@@ -75,7 +98,7 @@ class BatchFetchCli:
             raise BatchFetchError(str(err)) from err
 
     def loads(self, data: dict):
-        schema = Schema(BatchFetchCli.cfg_schema)
+        schema = Schema(self.cfg_schema)
         try:
             schema.validate(data)
         except SchemaError as err:
@@ -91,40 +114,38 @@ class BatchFetchCli:
         if "options" in data:
             self.cfg["options"].update(data["options"])
 
-        # TODO: Make this automatic
-        self._loads_git(data)
+        self._loads_tasks(data)
 
-    def _loads_git(self, data: dict):
+    def _loads_tasks(self, data: dict):
         if "tasks" not in data:
             return
 
         dict_local_dir = {}  # type: ignore
         for git_repo_raw in data["tasks"]:
-            if isinstance(git_repo_raw, str):
-                git_repo_raw = {BatchFetchCli.main_key: git_repo_raw}
+            batchfetch_class = self._plugin_get(git_repo_raw)
 
             try:
-                plugin_downloader_git = BatchFetchGit(
+                batchfetch_instance = batchfetch_class(
                     data=git_repo_raw,
                     options=self.cfg["options"],
                 )
-                self.cfg["tasks"].append(plugin_downloader_git)
+                self.cfg["tasks"].append(batchfetch_instance)
             except SchemaError as err:
                 print(f"Schema error: {err}.", file=sys.stderr)
                 sys.exit(1)
 
-            if plugin_downloader_git["path"] in dict_local_dir:
-                err_str = ("more than one repository will be cloned " +
-                           "to the directory '" +
-                           str(plugin_downloader_git["path"]) + "' (" +
-                           str(git_repo_raw[BatchFetchCli.main_key]) + " and " +
-                           str(dict_local_dir[plugin_downloader_git["path"]]) +
+            if batchfetch_instance["path"] in dict_local_dir:
+                err_str = ("more than one repository have the " +
+                           "destination path '" +
+                           str(batchfetch_instance["path"]) + "' (" +
+                           str(git_repo_raw[self.main_key]) + " and " +
+                           str(dict_local_dir[batchfetch_instance["path"]]) +
                            ")")
                 raise BatchFetchError(err_str)
-            dict_local_dir[plugin_downloader_git["path"]] = \
-                plugin_downloader_git[BatchFetchCli.main_key]
+            dict_local_dir[batchfetch_instance["path"]] = \
+                batchfetch_instance[self.main_key]
 
-    def download(self) -> bool:
+    def run_tasks(self) -> bool:
         failed = []
         error = False
         threads = []
@@ -175,7 +196,7 @@ class BatchFetchCli:
             if failed:
                 print("Failed:")
                 for git_update_result in failed:
-                    print("  - url:", git_update_result[BatchFetchCli.main_key])
+                    print("  - url:", git_update_result[self.main_key])
                     print("    dir:", git_update_result["path"])
             else:
                 print("Failed.")
@@ -250,7 +271,7 @@ def command_line_interface():
     os.chdir(os.path.dirname(args.batchfetch_file))
 
     try:
-        if not downloader_cli.download():
+        if not downloader_cli.run_tasks():
             errno = 1
     except KeyboardInterrupt:
         print("Interrupted.", file=sys.stderr)
