@@ -16,8 +16,3 @@
 # this program. If not, see <https://www.gnu.org/licenses/>.
 #
 """The entry-point of batchfetch."""
-
-from .batchfetch_cli import command_line_interface
-
-if __name__ == "__main__":
-    command_line_interface()

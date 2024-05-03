@@ -51,7 +51,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "batchfetch=batchfetch.__init__:command_line_interface",
+            "batchfetch=batchfetch.batchfetch_cli:command_line_interface",
         ],
     },
 )
