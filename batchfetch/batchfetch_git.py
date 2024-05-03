@@ -27,24 +27,27 @@ from typing import List, Union
 
 from schema import Optional
 
-from .batchfetch_base import (BatchFetchBase, BatchFetchError,
-                              GitBranchDoesNotExist)
+from .batchfetch_base import BatchFetchBase, BatchFetchError
 from .helpers import run_simple
+
+
+class GitBranchDoesNotExist(Exception):
+    """Exception raised by Name()."""
 
 
 class BatchFetchGit(BatchFetchBase):
     """Clone or update a Git repository."""
 
-    indent_spaces = " " * BatchFetchBase.indent
-    main_key = "git"
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.env["GIT_TERMINAL_PROMPT"] = "0"
+        self.indent_spaces = " " * self.indent
+        self.main_key = "git"
 
         # Schema
         self.item_schema.update({
             # Local options
-            BatchFetchGit.main_key: str,
+            self.main_key: str,
             Optional("branch"): str,
 
             # Same as global options
@@ -63,7 +66,7 @@ class BatchFetchGit(BatchFetchBase):
                                            "git_pull": True})
 
         self.item_default_values.update({
-            BatchFetchGit.main_key: "",
+            self.main_key: "",
             "branch": "",
             "delete": False,
         })
@@ -75,13 +78,13 @@ class BatchFetchGit(BatchFetchBase):
     def _initialize_data(self):
         super()._initialize_data()
 
-        self.values[BatchFetchGit.main_key] = \
-            self.values[BatchFetchGit.main_key].rstrip("/")
+        self.values[self.main_key] = \
+            self.values[self.main_key].rstrip("/")
 
         if "path" not in self.values:
             self.values["path"] = \
                 posixpath.basename(
-                    self.values[BatchFetchGit.main_key])  # type: ignore
+                    self.values[self.main_key])  # type: ignore
 
     def _git_ref(self, cwd: Union[None, Path] = None) -> str:
         """Get the commit reference of HEAD.
@@ -191,7 +194,7 @@ class BatchFetchGit(BatchFetchBase):
         git_clone_args += ["--recurse-submodules"]
 
         cmd = ["git", "clone"] + git_clone_args + \
-            [self[BatchFetchGit.main_key], str(self.git_local_dir)]
+            [self[self.main_key], str(self.git_local_dir)]
         self._run(cmd, env=self.env)
         self.set_changed(True)
 
@@ -351,7 +354,7 @@ class BatchFetchGit(BatchFetchBase):
         except IndexError:
             origin_url = ""
 
-        if origin_url != self[BatchFetchGit.main_key]:
+        if origin_url != self[self.main_key]:
             self.set_error(True)
             self.add_output(
                 self.indent_spaces +

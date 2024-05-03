@@ -31,19 +31,13 @@ class BatchFetchError(Exception):
     """Exception raised by Downloader()."""
 
 
-class GitBranchDoesNotExist(Exception):
-    """Exception raised by Name()."""
-
-
 class BatchFetchBase:
     """Plugin downloader base class."""
 
-    env = os.environ.copy()
-    env["GIT_TERMINAL_PROMPT"] = "0"
-
-    indent = 4
-
     def __init__(self, data: Dict[str, Any], options: Dict[str, Any]):
+        self.indent = 4
+        self.env = os.environ.copy()
+
         # Default
         self.global_options_schema: Dict[Any, Any] = {
             Optional("pre_exec"): Or([str], str),
