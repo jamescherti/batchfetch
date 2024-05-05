@@ -10,7 +10,8 @@
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
 # ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
 #
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <https://www.gnu.org/licenses/>.
@@ -24,7 +25,7 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict, Set, TypeVar
+from typing import Any, Dict, Set
 
 import colorama
 import yaml  # type: ignore
@@ -47,8 +48,6 @@ class BatchFetchCli:
         self.max_workers = max_workers
         self._logger = logging.getLogger(self.__class__.__name__)
         self.dirs_relative_to_batchfetch: Set[str] = set()
-
-        self.main_key = "git"
 
         # Plugin
         self.batchfetch_schemas: Dict[Any, Any] = {}
@@ -231,7 +230,8 @@ def parse_args():
         "--batchfetch-file",
         default="./batchfetch.yaml",
         required=False,
-        help="Specify the batchfetch YAML file (default: './batchfetch.yaml').",
+        help=("Specify the batchfetch YAML file "
+              "(default: './batchfetch.yaml')."),
     )
 
     args = parser.parse_args()

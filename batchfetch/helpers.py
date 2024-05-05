@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #
 # Copyright (c) James Cherti
 # URL: https://github.com/jamescherti/batchfetch
@@ -9,7 +10,8 @@
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
 # ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
 #
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <https://www.gnu.org/licenses/>.
@@ -28,7 +30,7 @@ def md5sum(filename: os.PathLike):
     Calculate and return the MD5 checksum of a file.
 
     Args:
-        filename: The path to the file for which the MD5 checksum is calculated.
+        filename: Path to the file for which the MD5 checksum is calculated.
 
     Returns:
         str: The MD5 checksum of the file.
