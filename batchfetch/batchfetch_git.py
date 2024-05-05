@@ -159,7 +159,7 @@ class BatchFetchGit(BatchFetchBase):
                             textwrap.indent(err.stderr, " " * self.indent))
 
         if not self.is_error() and not self.is_changed():
-            self.add_output(self.indent_spaces + "# Already up to date\n")
+            self.add_output(self.indent_spaces + "[INFO] Nothing to do.\n")
 
         return self.values
 
@@ -176,7 +176,7 @@ class BatchFetchGit(BatchFetchBase):
 
     def _repo_delete(self):
         if not self.git_local_dir.exists():
-            self.add_output(self.indent_spaces + "# Already deleted\n")
+            self.add_output(self.indent_spaces + "[INFO] Already deleted\n")
         elif not self.git_local_dir.joinpath(".git").is_dir():
             self.add_output(
                 self.indent_spaces +
@@ -187,7 +187,7 @@ class BatchFetchGit(BatchFetchBase):
         elif self.git_local_dir.is_dir():
             shutil.rmtree(str(self.git_local_dir))
             self.add_output(self.indent_spaces +
-                            f"# Deleted: '{self.git_local_dir}'")
+                            f"[INFO] Deleted: '{self.git_local_dir}'")
             self.set_changed(True)
 
     def _repo_clone(self):
@@ -241,7 +241,7 @@ class BatchFetchGit(BatchFetchBase):
 
         if ignore_git_pull:
             self.add_output(self.indent_spaces +
-                            "# git pull ignored\n")
+                            "[INFO] git pull ignored\n")
         else:
             cmd = ["git", "fetch", "origin"]
             self._run(cmd, cwd=str(self.git_local_dir), env=self.env)
@@ -318,7 +318,8 @@ class BatchFetchGit(BatchFetchBase):
                 # Update the branch
                 self._run(["git", "checkout"] + [self["reference"]],
                           cwd=str(self.git_local_dir), env=self.env)
-                self.add_output(self.indent_spaces + "# Branch changed to " +
+                self.add_output(self.indent_spaces +
+                                "[INFO] Branch changed to " +
                                 self["reference"] + "\n")
                 self.set_changed(True)
                 branch_changed = True

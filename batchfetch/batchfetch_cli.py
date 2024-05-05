@@ -202,7 +202,7 @@ class BatchFetchCli:
             return False
         else:
             if num_success == 0:
-                print("Already up to date.")
+                print("Nothing to do.")
             elif not self.verbose:
                 print("Success.")
 
