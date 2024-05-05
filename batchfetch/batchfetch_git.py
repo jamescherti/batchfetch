@@ -31,7 +31,7 @@ from .batchfetch_base import BatchFetchBase, BatchFetchError
 from .helpers import run_simple
 
 
-class GitBranchDoesNotExist(Exception):
+class GitReferenceDoesNotExist(Exception):
     """Exception raised by Name()."""
 
 
@@ -48,7 +48,7 @@ class BatchFetchGit(BatchFetchBase):
         self.item_schema.update({
             # Local options
             self.main_key: str,
-            Optional("branch"): str,
+            Optional("reference"): str,
 
             # Same as global options
             Optional("clone_args"): [str],
@@ -67,7 +67,7 @@ class BatchFetchGit(BatchFetchBase):
 
         self.item_default_values.update({
             self.main_key: "",
-            "branch": "",
+            "reference": "",
             "delete": False,
         })
 
@@ -118,8 +118,8 @@ class BatchFetchGit(BatchFetchBase):
 
         self.add_output(
             f"[GIT {update_type}] {self[self.main_key]}" +
-            (f" (branch: {self['branch']})"
-             if self["branch"] else "") + "\n"
+            (f" (Reference: {self['reference']})"
+             if self["reference"] else "") + "\n"
         )
 
         try:
@@ -211,12 +211,12 @@ class BatchFetchGit(BatchFetchBase):
         if not self["git_pull"]:
             ignore_git_pull = True
 
-        if self["branch"]:
+        if self["reference"]:
             ignore_git_pull = False
             # Check if the new branch exists
             try:
-                self._git_tags(self["branch"])
-            except GitBranchDoesNotExist:
+                self._git_tags(self["reference"])
+            except GitReferenceDoesNotExist:
                 pass
             else:
                 # The branch exists:
@@ -229,13 +229,13 @@ class BatchFetchGit(BatchFetchBase):
                     pass
                 else:
                     if (self.current_branch and
-                        (commit_ref == self["branch"] or
-                         self.current_branch == self["branch"])):
+                        (commit_ref == self["reference"] or
+                         self.current_branch == self["reference"])):
                         ignore_git_pull = True
 
                 # 2. Ignore Git pull if it is not a local branch
                 if (not ignore_git_pull and
-                        not self._git_is_local_branch(self["branch"])):
+                        not self._git_is_local_branch(self["reference"])):
                     ignore_git_pull = True
 
         if ignore_git_pull:
@@ -287,15 +287,15 @@ class BatchFetchGit(BatchFetchBase):
                 env=self.env,
                 cwd=self.git_local_dir)
         except subprocess.CalledProcessError as err:
-            raise GitBranchDoesNotExist(
-                f"The branch '{branch}' does not exist.") from err
+            raise GitReferenceDoesNotExist(
+                f"The reference '{branch}' does not exist.") from err
 
         return stdout
 
     def _repo_fix_branch(self) -> bool:
         git_ref_after_merge = self._git_ref(cwd=self.git_local_dir)
         branch_changed = False
-        if self["branch"]:
+        if self["reference"]:
             # We also need tags because sometimes, a branch
             # returns a different commit reference
             git_tags, _ = run_simple(
@@ -307,18 +307,18 @@ class BatchFetchGit(BatchFetchBase):
             # Also check the commit reference in case
             # branch is a commit reference instead of a tag
             try:
-                git_ref_branch = self._git_tags(self["branch"])[0]
-            except GitBranchDoesNotExist as err:
+                git_ref_branch = self._git_tags(self["reference"])[0]
+            except GitReferenceDoesNotExist as err:
                 raise BatchFetchError(f"The branch '{self['branch']}' "
                                       "does not exist.") from err
 
             if git_ref_after_merge != git_ref_branch and \
-                    self["branch"] not in git_tags:
+                    self["reference"] not in git_tags:
                 # Update the branch
-                self._run(["git", "checkout"] + [self["branch"]],
+                self._run(["git", "checkout"] + [self["reference"]],
                           cwd=str(self.git_local_dir), env=self.env)
                 self.add_output(self.indent_spaces + "# Branch changed to " +
-                                self["branch"] + "\n")
+                                self["reference"] + "\n")
                 self.set_changed(True)
                 branch_changed = True
 

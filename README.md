@@ -37,12 +37,12 @@ tasks:
   # Clone the tag 1.5 of the consult repository to the './consult'
   # directory
   - git: https://github.com/minad/consult
-    branch: "1.5"
+    reference: "1.5"
 
   # Clone the s.el repository to the './another-name.el' directory
   - git: https://github.com/magnars/s.el
     path: another-name.el
-    branch: dda84d38fffdaf0c9b12837b504b402af910d01d
+    reference: dda84d38fffdaf0c9b12837b504b402af910d01d
 
   # Delete './impatient-mode'
   - git: https://github.com/skeeto/impatient-mode
@@ -62,12 +62,12 @@ Command line interface.
 
 options:
   -h, --help            show this help message and exit
-  -j JOBS, --jobs JOBS
-                        Run up to N Number of parallel git processes (Default: 5).
+  -j JOBS, --jobs JOBS  Run up to N Number of parallel processes (Default: 5).
   -v, --verbose         Enable verbose mode.
   -f BATCHFETCH_FILE, --batchfetch-file BATCHFETCH_FILE
                         Specify the batchfetch YAML file (default: './batchfetch.yaml').
 ```
+
 ## License
 
 Copyright (c) [James Cherti](https://www.jamescherti.com)
