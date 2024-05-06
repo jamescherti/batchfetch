@@ -133,17 +133,16 @@ class BatchFetchCli:
                 print(f"Schema error: {err}.", file=sys.stderr)
                 sys.exit(1)
 
-            if batchfetch_instance["path"] in dict_local_dir:
-                err_str = ("more than one repository have the " +
-                           "destination path '" +
-                           str(batchfetch_instance["path"]) + "' (" +
+            dest_path = Path(batchfetch_instance["path"]).resolve()
+            if str(dest_path) in dict_local_dir:
+                err_str = ("More than one task have the " +
+                           f"destination path '{dest_path}' (" +
                            str(task[keyword]) + " and " +
-                           str(dict_local_dir[batchfetch_instance["path"]]) +
+                           str(dict_local_dir[(str(dest_path))]) +
                            ")")
                 raise BatchFetchError(err_str)
 
-            dict_local_dir[batchfetch_instance["path"]] = \
-                batchfetch_instance[keyword]
+            dict_local_dir[str(dest_path)] = batchfetch_instance[keyword]
 
     def run_tasks(self) -> bool:
         failed = []
