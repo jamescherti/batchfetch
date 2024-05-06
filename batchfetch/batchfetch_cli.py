@@ -214,6 +214,10 @@ def parse_args():
     usage = "%(prog)s [--option] [args]"
     parser = argparse.ArgumentParser(description=desc, usage=usage)
 
+    parser.add_argument("batchfetch_files", metavar="N", type=str, nargs="*",
+                        help=("Specify the batchfetch YAML file(s) "
+                              "(default: './batchfetch.yaml')."))
+
     parser.add_argument(
         "-j", "--jobs", default="5", required=False,
         help="Run up to N Number of parallel processes (Default: 5).",
@@ -224,41 +228,23 @@ def parse_args():
         help="Enable verbose mode.",
     )
 
-    parser.add_argument(
-        "-f",
-        "--batchfetch-file",
-        default="./batchfetch.yaml",
-        required=False,
-        help=("Specify the batchfetch YAML file "
-              "(default: './batchfetch.yaml')."),
-    )
-
     args = parser.parse_args()
 
-    if not Path(args.batchfetch_file).is_file():
-        print(f"Error: File not found: {args.batchfetch_file}",
-              file=sys.stderr)
-        sys.exit(1)
+    for batchfetch_file in args.batchfetch_files:
+        if not Path(batchfetch_file).is_file():
+            print(f"Error: File not found: {batchfetch_file}",
+                  file=sys.stderr)
+            sys.exit(1)
 
     return args
 
 
-def command_line_interface():
-    """Command line interface."""
+def run_batchfetch_procedure(batchfetch_file: Path, args) -> int:
     errno = 0
-    logging.basicConfig(level=logging.INFO, stream=sys.stdout,
-                        format="%(asctime)s %(name)s: %(message)s")
-
-    colorama.init()
-    setproctitle(subprocess.list2cmdline([Path(sys.argv[0]).name] +
-                                         sys.argv[1:]))
-
-    args = parse_args()
     batchfetch_cli = BatchFetchCli(verbose=args.verbose,
                                    max_workers=int(args.jobs))
-
-    batchfetch_cli.load(args.batchfetch_file)
-    os.chdir(os.path.dirname(args.batchfetch_file))
+    batchfetch_cli.load(batchfetch_file)
+    os.chdir(batchfetch_file.parent)
 
     try:
         if not batchfetch_cli.run_tasks():
@@ -270,4 +256,31 @@ def command_line_interface():
         print(f"Error: {err}.", file=sys.stderr)
         errno = 1
 
-    sys.exit(errno)
+    return errno
+
+
+def command_line_interface():
+    """Command line interface."""
+    try:
+        errno = 0
+        logging.basicConfig(level=logging.INFO, stream=sys.stdout,
+                            format="%(asctime)s %(name)s: %(message)s")
+
+        colorama.init()
+        setproctitle(subprocess.list2cmdline([Path(sys.argv[0]).name] +
+                                             sys.argv[1:]))
+
+        args = parse_args()
+        done = []
+        for batchfetch_file in args.batchfetch_files:
+            batchfetch_file = Path(batchfetch_file)
+            batchfetch_file_resolved = batchfetch_file.resolve()
+            if batchfetch_file_resolved in done:
+                continue
+
+            done.append(batchfetch_file_resolved)
+            errno |= run_batchfetch_procedure(batchfetch_file, args)
+
+        sys.exit(errno)
+    except BrokenPipeError:
+        pass

@@ -60,12 +60,13 @@ usage: batchfetch [--option] [args]
 
 Command line interface.
 
+positional arguments:
+  N                     Specify the batchfetch YAML file(s) (default: './batchfetch.yaml').
+
 options:
   -h, --help            show this help message and exit
   -j JOBS, --jobs JOBS  Run up to N Number of parallel processes (Default: 5).
   -v, --verbose         Enable verbose mode.
-  -f BATCHFETCH_FILE, --batchfetch-file BATCHFETCH_FILE
-                        Specify the batchfetch YAML file (default: './batchfetch.yaml').
 ```
 
 ## License
