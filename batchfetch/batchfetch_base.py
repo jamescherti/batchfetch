@@ -41,21 +41,21 @@ class BatchFetchBase:
 
         # Default
         self.global_options_schema: Dict[Any, Any] = {
-            Optional("pre_exec"): Or([str], str),
-            Optional("post_exec"): Or([str], str),
+            Optional("exec_before"): Or([str], str),
+            Optional("exec_after"): Or([str], str),
         }
 
         self.item_schema: Dict[Any, Any] = {
             Optional("path"): str,
             Optional("delete"): bool,
 
-            Optional("pre_exec"): Or([str], str),
-            Optional("post_exec"): Or([str], str),
+            Optional("exec_before"): Or([str], str),
+            Optional("exec_after"): Or([str], str),
         }
 
         self.global_options_values: Dict[str, Any] = {
-            "pre_exec": [],
-            "post_exec": [],
+            "exec_before": [],
+            "exec_after": [],
         }
 
         self.item_default_values: Dict[str, Any] = {
@@ -112,7 +112,7 @@ class BatchFetchBase:
 
     def _run_pre_exec(self, cwd: os.PathLike = Path(".")):
         self._initialize_data()
-        for pre_exec in self["pre_exec"]:
+        for pre_exec in self["exec_before"]:
             if not pre_exec:
                 continue
 
@@ -124,7 +124,7 @@ class BatchFetchBase:
         if self["delete"] or not self.is_changed():
             return
 
-        for post_exec in self["post_exec"]:
+        for post_exec in self["exec_after"]:
             if not post_exec:
                 continue
 

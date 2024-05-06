@@ -229,6 +229,8 @@ def parse_args():
     )
 
     args = parser.parse_args()
+    if not args.batchfetch_files:
+        args.batchfetch_files = ["./batchfetch.yaml"]
 
     for batchfetch_file in args.batchfetch_files:
         if not Path(batchfetch_file).is_file():
