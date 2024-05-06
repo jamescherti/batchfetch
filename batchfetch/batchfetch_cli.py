@@ -43,7 +43,7 @@ class BatchFetchCli:
     def __init__(self, max_workers: int, verbose: bool = False):
         self.cfg: dict = {}
         self.folder = Path(".")
-        self.managed_filenames: Set[str] = set()
+        self.managed_paths: Set[Path] = set()
         self.verbose = verbose
         self.max_workers = max_workers
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -149,7 +149,7 @@ class BatchFetchCli:
         error = False
         threads = []
         num_success = 0
-        self.managed_filenames = set()
+        self.managed_paths = set()
 
         executor_update = ThreadPoolExecutor(max_workers=self.max_workers)
 
@@ -160,26 +160,26 @@ class BatchFetchCli:
             for task in all_tasks:
                 self.dirs_relative_to_batchfetch.add(str(task["path"]))
                 if not task["delete"]:
-                    self.managed_filenames.add(task["path"])
+                    self.managed_paths.add(Path(task["path"]).absolute())
                 threads.append(executor_update.submit(task.update))
 
             for future in as_completed(threads):
                 data = future.result()
                 if data["result"]["error"]:
-                    print(Fore.RED, end="")
-                elif data["result"]["changed"]:
-                    print(Fore.YELLOW, end="")
-                else:
-                    if not self.verbose:
-                        continue
-
-                    print(Fore.GREEN, end="")
-
-                if data["result"]["error"]:
                     error = True
                     failed.append(data)
                 else:
                     num_success += 1
+
+                if not self.verbose:
+                    continue
+
+                if data["result"]["error"]:
+                    print(Fore.RED, end="")
+                elif data["result"]["changed"]:
+                    print(Fore.YELLOW, end="")
+                else:
+                    print(Fore.GREEN, end="")
 
                 if data["result"]["output"]:
                     print(data["result"]["output"].rstrip("\n"))
