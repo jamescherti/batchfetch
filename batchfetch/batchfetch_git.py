@@ -119,7 +119,7 @@ class BatchFetchGit(BatchFetchBase):
 
         self.add_output(
             f"[GIT {update_type}] {self[self.main_key]}" +
-            (f" (Reference: {self['reference']})"
+            (f" (Ref: {self['reference']})"
              if self["reference"] else "") + "\n"
         )
 
@@ -218,26 +218,34 @@ class BatchFetchGit(BatchFetchBase):
             try:
                 self._git_tags(self["reference"])
             except GitReferenceDoesNotExist:
-                pass
+                # The reference does not exist. We should maybe git pull
+                # in case the reference is in a new commit.
+                ignore_git_pull = False
             else:
-                # The branch exists:
-                # 1. Ignore Git pull when the git reference is the same
-                # as the "branch:" key
-                try:
-                    commit_ref = self._git_ref(cwd=self.git_local_dir)
-                except subprocess.CalledProcessError:
-                    # Ignore git pull because the head is detached
-                    pass
+                if self.current_branch and \
+                        self.current_branch == self["reference"]:
+                    ignore_git_pull = False
                 else:
-                    if (self.current_branch and
-                        (commit_ref == self["reference"] or
-                         self.current_branch == self["reference"])):
-                        ignore_git_pull = True
+                    # The reference exists:
+                    # 1. Ignore Git pull when the git reference is the same
+                    # as the "branch:" key
+                    try:
+                        commit_ref = self._git_ref(cwd=self.git_local_dir)
+                    except subprocess.CalledProcessError:
+                        # Ignore git pull because the head is detached
+                        pass
+                    else:
+                        # The head is not detached
+                        # self.current_branch contains the current branch
+                        if (commit_ref == self["reference"] or
+                            (self.current_branch and
+                                self.current_branch == self["reference"])):
+                            ignore_git_pull = True
 
-                # 2. Ignore Git pull if it is not a local branch
-                if (not ignore_git_pull and
-                        not self._git_is_local_branch(self["reference"])):
-                    ignore_git_pull = True
+                    # 2. Ignore Git pull if it is not a local branch
+                    if (not ignore_git_pull and
+                            not self._git_is_local_branch(self["reference"])):
+                        ignore_git_pull = True
 
         if ignore_git_pull:
             self.add_output(self.indent_spaces +
