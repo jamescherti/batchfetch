@@ -171,7 +171,9 @@ class BatchFetchCli:
                 else:
                     num_success += 1
 
-                if not self.verbose:
+                if (not self.verbose and
+                    not data["result"]["error"] and
+                        not data["result"]["changed"]):
                     continue
 
                 if data["result"]["error"]:
