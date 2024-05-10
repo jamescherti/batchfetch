@@ -315,7 +315,8 @@ class BatchFetchGit(BatchFetchBase):
             # Also check the commit reference in case
             # branch is a commit reference instead of a tag
             try:
-                git_ref_branch = self._git_tags(self["reference"])[0]
+                git_ref_branch = self._git_tags(self["reference"] +
+                                                "^{commit}")[0]
             except GitReferenceDoesNotExist as err:
                 raise BatchFetchError(f"The branch '{self['branch']}' "
                                       "does not exist.") from err
