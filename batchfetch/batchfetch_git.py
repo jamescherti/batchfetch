@@ -92,7 +92,7 @@ class BatchFetchGit(BatchFetchBase):
 
         The command will fail if the branch is detached.
         """
-        cmd = "git show-ref --head --verify HEAD"
+        cmd = ["git", "show-ref", "--head", "--verify", "HEAD"]
         try:
             stdout, _ = run_simple(cmd, cwd=cwd, env=self.env)
             output = stdout[0].split(" ")[0]
@@ -208,46 +208,37 @@ class BatchFetchGit(BatchFetchBase):
         git_merge = False
 
         # Merge
-        ignore_git_pull = False
-        if not self["git_pull"]:
-            ignore_git_pull = True
-
+        do_git_pull = self["git_pull"]
+        disable_merge = False
         if self["reference"]:
-            ignore_git_pull = False
-            # Check if the new branch exists
+            commit_ref = None
             try:
-                self._git_tags(self["reference"])
+                # Returns the commit ref of the branch or commit
+                commit_ref = self._git_tags(self["reference"])[0]
             except GitReferenceDoesNotExist:
-                # The reference does not exist. We should maybe git pull
-                # in case the reference is in a new commit.
-                ignore_git_pull = False
-            else:
-                if self.current_branch and \
-                        self.current_branch == self["reference"]:
-                    ignore_git_pull = False
+                # The reference does not exist. We should git pull
+                # in case we can get the reference
+                do_git_pull = True
+            else:  # The reference exists
+                if not self._git_is_local_branch(self["reference"]):
+                    # This is not a real branch where we can merge
+                    disable_merge = True
+
+                try:
+                    # Returns the commit ref of the branch or commit
+                    commit_ref_head = self._git_tags("HEAD")[0]
+                except GitReferenceDoesNotExist:
+                    # HEAD is detached
+                    commit_ref_head = None
+
+                # The wanted commit reference does not exist
+                # Or the commit ref of HEAD hasn't changed
+                if not commit_ref or commit_ref_head != commit_ref:
+                    do_git_pull = True
                 else:
-                    # The reference exists:
-                    # 1. Ignore Git pull when the git reference is the same
-                    # as the "branch:" key
-                    try:
-                        commit_ref = self._git_ref(cwd=self.git_local_dir)
-                    except subprocess.CalledProcessError:
-                        # Ignore git pull because the head is detached
-                        pass
-                    else:
-                        # The head is not detached
-                        # self.current_branch contains the current branch
-                        if (commit_ref == self["reference"] or
-                            (self.current_branch and
-                                self.current_branch == self["reference"])):
-                            ignore_git_pull = True
+                    do_git_pull = False
 
-                    # 2. Ignore Git pull if it is not a local branch
-                    if (not ignore_git_pull and
-                            not self._git_is_local_branch(self["reference"])):
-                        ignore_git_pull = True
-
-        if ignore_git_pull:
+        if not do_git_pull:
             self.add_output(self.indent_spaces +
                             "[INFO] git pull ignored\n")
         else:
@@ -255,19 +246,20 @@ class BatchFetchGit(BatchFetchBase):
             self._run(cmd, cwd=str(self.git_local_dir), env=self.env)
 
             # TODO: only merge when difference from upstream
-            commit_ref = self._git_ref(cwd=self.git_local_dir)
-            self._run(["git", "merge", "--ff-only"],
-                      cwd=str(self.git_local_dir), env=self.env)
-            git_ref_after_merge = self._git_ref(cwd=self.git_local_dir)
-            if commit_ref != git_ref_after_merge:
-                git_merge = True
-                self.set_changed(True)
-                self._run(["git", "log",
-                           '--pretty=format:"%h %ad %s [%cn]"',
-                           "--decorate", "--date=short",
-                           f"{commit_ref}..{git_ref_after_merge}"],
-                          cwd=str(self.git_local_dir),
-                          env=self.env)
+            commit_ref_head = self._git_ref(cwd=self.git_local_dir)
+            if not disable_merge:
+                self._run(["git", "merge", "--ff-only"],
+                          cwd=str(self.git_local_dir), env=self.env)
+                git_ref_after_merge = self._git_ref(cwd=self.git_local_dir)
+                if commit_ref_head != git_ref_after_merge:
+                    git_merge = True
+                    self.set_changed(True)
+                    self._run(["git", "log",
+                               '--pretty=format:"%h %ad %s [%cn]"',
+                               "--decorate", "--date=short",
+                               f"{commit_ref_head}..{git_ref_after_merge}"],
+                              cwd=str(self.git_local_dir),
+                              env=self.env)
 
         return git_merge
 
@@ -291,10 +283,9 @@ class BatchFetchGit(BatchFetchBase):
     def _git_tags(self, branch: str) -> List[str]:
         stdout: List[str] = []
         try:
-            stdout, _ = run_simple(
-                ["git", "rev-parse", "--verify", branch],
-                env=self.env,
-                cwd=self.git_local_dir)
+            stdout, _ = run_simple(["git", "rev-parse", "--verify", branch],
+                                   env=self.env,
+                                   cwd=self.git_local_dir)
         except subprocess.CalledProcessError as err:
             raise GitReferenceDoesNotExist(
                 f"The reference '{branch}' does not exist.") from err
