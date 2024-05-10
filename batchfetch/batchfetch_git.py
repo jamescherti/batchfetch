@@ -254,7 +254,7 @@ class BatchFetchGit(BatchFetchBase):
         # Merge
         real_branch = self._git_is_local_branch("HEAD")
         if real_branch:
-           # TODO: only merge when difference from upstream
+            # TODO: only merge when difference from upstream
             commit_ref_head = self._git_ref(cwd=self.git_local_dir)
             self._run(["git", "merge", "--ff-only"],
                       cwd=str(self.git_local_dir), env=self.env)
