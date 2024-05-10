@@ -209,57 +209,65 @@ class BatchFetchGit(BatchFetchBase):
 
         # Merge
         do_git_pull = self["git_pull"]
-        disable_merge = False
         if self["reference"]:
+            do_git_pull = False
             commit_ref = None
+
             try:
                 # Returns the commit ref of the branch or commit
-                commit_ref = self._git_tags(self["reference"])[0]
+                #
+                # If the tag is annotated, it points to a tag object, not
+                # directly to a commit. You need to resolve it to the commit it
+                # points to. Using `git rev-parse <tagname>^{commit}` allows
+                # getting the right reference.
+                commit_ref = self._git_tags(self["reference"] + "^{commit}")[0]
             except GitReferenceDoesNotExist:
-                # The reference does not exist. We should git pull
-                # in case we can get the reference
+                # The wanted reference does not exist. We should git pull in
+                # case we can get the reference
                 do_git_pull = True
             else:  # The reference exists
-                if not self._git_is_local_branch(self["reference"]):
-                    # This is not a real branch where we can merge
-                    disable_merge = True
-
                 try:
-                    # Returns the commit ref of the branch or commit
-                    commit_ref_head = self._git_tags("HEAD")[0]
+                    # If the tag is annotated, it points to a tag object, not
+                    # directly to a commit. You need to resolve it to the
+                    # commit it points to. Using `git rev-parse
+                    # <tagname>^{commit}` allows getting the right reference.
+                    commit_ref_head = self._git_tags("HEAD^{commit}")[0]
                 except GitReferenceDoesNotExist:
                     # HEAD is detached
                     commit_ref_head = None
 
                 # The wanted commit reference does not exist
                 # Or the commit ref of HEAD hasn't changed
-                if not commit_ref or commit_ref_head != commit_ref:
-                    do_git_pull = True
-                else:
+                if commit_ref and commit_ref_head == commit_ref:
                     do_git_pull = False
+                else:
+                    do_git_pull = True
 
         if not do_git_pull:
-            self.add_output(self.indent_spaces +
-                            "[INFO] git pull ignored\n")
-        else:
-            cmd = ["git", "fetch", "origin"]
-            self._run(cmd, cwd=str(self.git_local_dir), env=self.env)
+            self.add_output(self.indent_spaces + "[INFO] git pull ignored\n")
+            return git_merge
 
-            # TODO: only merge when difference from upstream
+        # Fetch
+        cmd = ["git", "fetch", "origin"]
+        self._run(cmd, cwd=str(self.git_local_dir), env=self.env)
+
+        # Merge
+        real_branch = self._git_is_local_branch("HEAD")
+        if real_branch:
+           # TODO: only merge when difference from upstream
             commit_ref_head = self._git_ref(cwd=self.git_local_dir)
-            if not disable_merge:
-                self._run(["git", "merge", "--ff-only"],
-                          cwd=str(self.git_local_dir), env=self.env)
-                git_ref_after_merge = self._git_ref(cwd=self.git_local_dir)
-                if commit_ref_head != git_ref_after_merge:
-                    git_merge = True
-                    self.set_changed(True)
-                    self._run(["git", "log",
-                               '--pretty=format:"%h %ad %s [%cn]"',
-                               "--decorate", "--date=short",
-                               f"{commit_ref_head}..{git_ref_after_merge}"],
-                              cwd=str(self.git_local_dir),
-                              env=self.env)
+            self._run(["git", "merge", "--ff-only"],
+                      cwd=str(self.git_local_dir), env=self.env)
+            git_ref_after_merge = self._git_ref(cwd=self.git_local_dir)
+            if commit_ref_head != git_ref_after_merge:
+                git_merge = True
+                self.set_changed(True)
+                self._run(["git", "log",
+                           '--pretty=format:"%h %ad %s [%cn]"',
+                           "--decorate", "--date=short",
+                           f"{commit_ref_head}..{git_ref_after_merge}"],
+                          cwd=str(self.git_local_dir),
+                          env=self.env)
 
         return git_merge
 
