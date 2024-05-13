@@ -53,18 +53,18 @@ class BatchFetchGit(BatchFetchBase):
             Optional("reference"): str,
 
             # Same as global options
-            Optional("clone_args"): [str],
+            Optional("git_clone_args"): [str],
             Optional("git_pull"): bool,
         })
 
         self.global_options_schema.update({
             # Global options
-            Optional("clone_args"): [str],
+            Optional("git_clone_args"): [str],
             Optional("git_pull"): bool,
         })
 
         # Data
-        self.global_options_values.update({"clone_args": [],
+        self.global_options_values.update({"git_clone_args": [],
                                            "git_pull": True})
 
         self.item_default_values.update({
@@ -192,7 +192,7 @@ class BatchFetchGit(BatchFetchBase):
             self.set_changed(True)
 
     def _repo_clone(self):
-        git_clone_args = self["clone_args"]
+        git_clone_args = self["git_clone_args"]
         git_clone_args += ["--recurse-submodules"]
 
         cmd = ["git", "clone"] + git_clone_args + \
@@ -319,7 +319,7 @@ class BatchFetchGit(BatchFetchBase):
                 git_ref_branch = self._git_tags(self["reference"] +
                                                 "^{commit}")[0]
             except GitReferenceDoesNotExist as err:
-                raise BatchFetchError(f"The branch '{self['branch']}' "
+                raise BatchFetchError(f"The branch '{self['reference']}' "
                                       "does not exist.") from err
 
             if git_ref_after_merge != git_ref_branch and \

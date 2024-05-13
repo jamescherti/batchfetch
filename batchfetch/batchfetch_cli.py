@@ -105,7 +105,7 @@ class BatchFetchCli:
             sys.exit(1)
 
         self.cfg = {
-            "options": {"clone_args": []},
+            "options": {"git_clone_args": []},
             "tasks": [],
         }
 
