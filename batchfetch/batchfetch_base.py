@@ -76,10 +76,6 @@ class TaskBase:
             "changed": False,
         }
 
-    def update(self):
-        self._initialize_data()
-        return self.values
-
     def validate_schema(self):
         self._initialize_data()
 
@@ -201,3 +197,7 @@ class BatchFetchBase(TaskBase):
     def get_output(self) -> str:
         self._initialize_data()
         return str(self.values["result"]["output"])
+
+    def update(self):
+        self._initialize_data()
+        return self.values
