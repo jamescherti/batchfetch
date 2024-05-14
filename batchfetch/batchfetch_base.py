@@ -70,6 +70,18 @@ class TaskBase:
         schema = Schema(self.item_schema)
         schema.validate(self.values)
 
+        # Strip spaces
+        self.values = {
+            key: value.strip() if isinstance(value, str) else value
+            for key, value in self.values.items()
+        }
+
+        self.values["result"] = {
+            "output": "",
+            "error": False,
+            "changed": False,
+        }
+
     def update(self):
         self._initialize_data()
         return self.values
@@ -130,18 +142,6 @@ class BatchFetchBase(TaskBase):
             super()._initialize_data()
         except DataAlreadyInitialized:
             return
-
-        self.values["result"] = {
-            "output": "",
-            "error": False,
-            "changed": False,
-        }
-
-        # Strip spaces
-        self.values = {
-            key: value.strip() if isinstance(value, str) else value
-            for key, value in self.values.items()
-        }
 
         # Mark values as initialized
         self._values_initialized = True
