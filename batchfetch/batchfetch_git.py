@@ -46,7 +46,7 @@ class BatchFetchGit(BatchFetchBase):
         self.main_key = "git"
 
         # Schema
-        self.item_schema.update({
+        self.task_schema.update({
             # Local options
             self.main_key: str,
             Optional("reference"): str,
@@ -66,7 +66,7 @@ class BatchFetchGit(BatchFetchBase):
         self.global_options_values.update({"git_clone_args": [],
                                            "git_pull": True})
 
-        self.item_default_values.update({
+        self.task_default_values.update({
             self.main_key: "",
             "reference": "",
             "delete": False,

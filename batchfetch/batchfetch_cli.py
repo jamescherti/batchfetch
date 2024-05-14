@@ -60,7 +60,7 @@ class BatchFetchCli:
                                                options={})
         batchfetch_instance.validate_schema()
 
-        self.batchfetch_schemas[keyword] = batchfetch_instance.item_schema
+        self.batchfetch_schemas[keyword] = batchfetch_instance.task_schema
         self.batchfetch_classes[keyword] = batchfetch_class
         self.cfg_schema = {
             Optional("options"):

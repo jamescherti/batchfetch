@@ -41,8 +41,8 @@ class TaskBase:
         self.global_options_schema: Dict[Any, Any] = {}
         self.global_options_values: Dict[str, Any] = {}
 
-        self.item_schema: Dict[Any, Any] = {}
-        self.item_default_values: Dict[str, Any] = {}
+        self.task_schema: Dict[Any, Any] = {}
+        self.task_default_values: Dict[str, Any] = {}
 
         self._item_values = data
         self._item_global_options = options
@@ -64,10 +64,10 @@ class TaskBase:
 
         # Data
         self.values = {}
-        self.values.update(deepcopy(self.item_default_values))
+        self.values.update(deepcopy(self.task_default_values))
         self.values.update(deepcopy(self._item_values))
         # self.values.update(deepcopy(self._item_global_options))
-        schema = Schema(self.item_schema)
+        schema = Schema(self.task_schema)
         schema.validate(self.values)
 
         self.values["result"] = {
@@ -109,7 +109,7 @@ class BatchFetchBase(TaskBase):
             Optional("exec_after"): Or([str], str),
         }
 
-        self.item_schema: Dict[Any, Any] = {
+        self.task_schema: Dict[Any, Any] = {
             Optional("path"): str,
             Optional("delete"): bool,
 
@@ -122,7 +122,7 @@ class BatchFetchBase(TaskBase):
             "exec_after": [],
         }
 
-        self.item_default_values: Dict[str, Any] = {
+        self.task_default_values: Dict[str, Any] = {
             # Optional items
             "delete": False,
         }
