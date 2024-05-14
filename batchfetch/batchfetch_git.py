@@ -43,7 +43,6 @@ class BatchFetchGit(BatchFetchBase):
         super().__init__(*args, **kwargs)
         self.env["GIT_TERMINAL_PROMPT"] = "0"
         self.env["GIT_PAGER"] = ""
-        self.indent_spaces = " " * self.indent
         self.main_key = "git"
 
         # Schema

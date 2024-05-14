@@ -32,11 +32,73 @@ class BatchFetchError(Exception):
     """Exception raised by Downloader()."""
 
 
-class BatchFetchBase:
+class DataAlreadyInitialized(Exception):
+    """Data already initialized."""
+
+
+class TaskBase:
+    def __init__(self, data: Dict[str, Any], options: Dict[str, Any]):
+        self.global_options_schema: Dict[Any, Any] = {}
+        self.global_options_values: Dict[str, Any] = {}
+
+        self.item_schema: Dict[Any, Any] = {}
+        self.item_default_values: Dict[str, Any] = {}
+
+        self._item_values = data
+        self._item_global_options = options
+
+        # Variables
+        self.values: Dict[str, Any] = {}
+        self.options: Dict[str, Any] = {}
+        self._values_initialized = False
+
+    def _initialize_data(self):
+        if self._values_initialized:
+            raise DataAlreadyInitialized
+
+        # Options
+        self.options = {}
+        self.options.update(deepcopy(self._item_global_options))
+        schema = Schema(self.global_options_schema)
+        schema.validate(self.options)
+
+        # Data
+        self.values = {}
+        self.values.update(deepcopy(self.item_default_values))
+        self.values.update(deepcopy(self._item_values))
+        # self.values.update(deepcopy(self._item_global_options))
+        schema = Schema(self.item_schema)
+        schema.validate(self.values)
+
+    def update(self):
+        self._initialize_data()
+        return self.values
+
+    def validate_schema(self):
+        self._initialize_data()
+
+    def __getitem__(self, key):
+        self._initialize_data()
+
+        if key in self.values:
+            return self.values[key]
+
+        if key in self.options:
+            return self.options[key]
+
+        if key in self.global_options_values:
+            return self.global_options_values[key]
+
+        raise KeyError(f"The item '{key}' was not found in '{self.values}")
+
+
+class BatchFetchBase(TaskBase):
     """Plugin downloader base class."""
 
     def __init__(self, data: Dict[str, Any], options: Dict[str, Any]):
+        super().__init__(data=data, options=options)
         self.indent = 4
+        self.indent_spaces = " " * self.indent
         self.env = os.environ.copy()
 
         # Default
@@ -63,31 +125,11 @@ class BatchFetchBase:
             "delete": False,
         }
 
-        self._item_values = data
-        self._item_global_options = options
-
-        # Variables
-        self.values: Dict[str, Any] = {}
-        self.options: Dict[str, Any] = {}
-        self._values_initialized = False
-
     def _initialize_data(self):
-        if self._values_initialized:
+        try:
+            super()._initialize_data()
+        except DataAlreadyInitialized:
             return
-
-        # Options
-        self.options = {}
-        self.options.update(deepcopy(self._item_global_options))
-        schema = Schema(self.global_options_schema)
-        schema.validate(self.options)
-
-        # Data
-        self.values = {}
-        self.values.update(deepcopy(self.item_default_values))
-        self.values.update(deepcopy(self._item_values))
-        # self.values.update(deepcopy(self._item_global_options))
-        schema = Schema(self.item_schema)
-        schema.validate(self.values)
 
         self.values["result"] = {
             "output": "",
@@ -95,13 +137,14 @@ class BatchFetchBase:
             "changed": False,
         }
 
-        self._values_initialized = True
-
         # Strip spaces
         self.values = {
             key: value.strip() if isinstance(value, str) else value
             for key, value in self.values.items()
         }
+
+        # Mark values as initialized
+        self._values_initialized = True
 
     def _run(self, *args, **kwargs):
         stdout = run_indent_str(*args, **kwargs)
@@ -130,23 +173,6 @@ class BatchFetchBase:
 
             self._run(post_exec, cwd=str(cwd), env=self.env,
                       spaces=self.indent)
-
-    def __getitem__(self, key):
-        self._initialize_data()
-
-        if key in self.values:
-            return self.values[key]
-
-        if key in self.options:
-            return self.options[key]
-
-        if key in self.global_options_values:
-            return self.global_options_values[key]
-
-        raise KeyError(f"The item '{key}' was not found in '{self.values}")
-
-    def validate_schema(self):
-        self._initialize_data()
 
     def is_changed(self) -> bool:
         self._initialize_data()
@@ -181,7 +207,3 @@ class BatchFetchBase:
     def get_output(self) -> str:
         self._initialize_data()
         return str(self.values["result"]["output"])
-
-    def update(self):
-        self._initialize_data()
-        return self.values
