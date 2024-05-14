@@ -70,12 +70,6 @@ class TaskBase:
         schema = Schema(self.item_schema)
         schema.validate(self.values)
 
-        # Strip spaces
-        self.values = {
-            key: value.strip() if isinstance(value, str) else value
-            for key, value in self.values.items()
-        }
-
         self.values["result"] = {
             "output": "",
             "error": False,
