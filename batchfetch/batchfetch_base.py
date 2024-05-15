@@ -45,7 +45,7 @@ class TaskBase:
         self.task_default_values: Dict[str, Any] = {}
 
         self._item_values = data
-        self._item_global_options = options
+        self._item_options = options
 
         # Variables
         self.values: Dict[str, Any] = {}
@@ -58,7 +58,8 @@ class TaskBase:
 
         # Options
         self.options = {}
-        self.options.update(deepcopy(self._item_global_options))
+        self.options.update(deepcopy(self.global_options_values))  # Default
+        self.options.update(deepcopy(self._item_options))
         schema = Schema(self.global_options_schema)
         schema.validate(self.options)
 
@@ -66,7 +67,6 @@ class TaskBase:
         self.values = {}
         self.values.update(deepcopy(self.task_default_values))
         self.values.update(deepcopy(self._item_values))
-        # self.values.update(deepcopy(self._item_global_options))
         schema = Schema(self.task_schema)
         schema.validate(self.values)
 
