@@ -39,7 +39,7 @@ class DataAlreadyInitialized(Exception):
 class TaskBase:
     def __init__(self, data: Dict[str, Any], options: Dict[str, Any]):
         self.global_options_schema: Dict[Any, Any] = {}
-        self.global_options_default_values: Dict[str, Any] = {}
+        self.global_options_values: Dict[str, Any] = {}
 
         self.task_schema: Dict[Any, Any] = {}
         self.task_default_values: Dict[str, Any] = {}
@@ -58,7 +58,7 @@ class TaskBase:
 
         # Options
         self.options = {}
-        self.options.update(deepcopy(self.global_options_default_values))
+        self.options.update(deepcopy(self.global_options_values))
         self.options.update(deepcopy(self._item_options))
         schema = Schema(self.global_options_schema)
         schema.validate(self.options)
@@ -88,8 +88,8 @@ class TaskBase:
         if key in self.options:
             return self.options[key]
 
-        if key in self.global_options_default_values:
-            return self.global_options_default_values[key]
+        if key in self.global_options_values:
+            return self.global_options_values[key]
 
         raise KeyError(f"The item '{key}' was not found in '{self.values}")
 
