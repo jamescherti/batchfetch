@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (c) James Cherti
+# Copyright (C) 2024 James Cherti
 # URL: https://github.com/jamescherti/batchfetch
 #
 # This program is free software: you can redistribute it and/or modify it under
