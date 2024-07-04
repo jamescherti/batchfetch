@@ -33,7 +33,11 @@ from .helpers import run_simple
 
 
 class GitReferenceDoesNotExist(Exception):
-    """Exception raised by Name()."""
+    """The Git reference does not exist."""
+
+
+class GitRemoteDoesNotExist(Exception):
+    """The git remote does not exist."""
 
 
 class BatchFetchGit(BatchFetchBase):
@@ -105,7 +109,6 @@ class BatchFetchGit(BatchFetchBase):
         super().update()
 
         is_clone = False
-
         if not self.git_local_dir.exists():
             is_clone = True
 
@@ -117,16 +120,15 @@ class BatchFetchGit(BatchFetchBase):
         else:
             update_type = "UPDATE"
 
-        self.add_output(
-            f"[GIT {update_type}] {self[self.main_key]}" +
-            (f" (Ref: {self['reference']})"
-             if self["reference"] else "") + "\n"
-        )
+        self.add_output(f"[GIT {update_type}] {self[self.main_key]}" +
+                        (f" (Ref: {self['reference']})"
+                         if self["reference"] else "") + "\n")
 
         try:
             # Delete
             if self["delete"]:
                 self._repo_delete()
+
             # Clone
             elif is_clone:
                 self._repo_clone()
@@ -136,7 +138,7 @@ class BatchFetchGit(BatchFetchBase):
                 # Pre exec
                 self._run_pre_exec(cwd=self.git_local_dir)
 
-                self._repo_check_remote_origin()
+                self._repo_fix_remote_origin()
                 self._update_current_branch()
                 self._repo_reset()
 
@@ -281,6 +283,20 @@ class BatchFetchGit(BatchFetchBase):
 
         return git_merge
 
+    def _git_get_remote(self, remote_name: str = "origin") -> str:
+        cmd = ["git", "config", "remote.origin.url"]
+        origin_url = ""
+        try:
+            stdout, _ = run_simple(cmd,
+                                   env=self.env,
+                                   cwd=self.git_local_dir)
+            origin_url = stdout[0]
+        except IndexError as err:
+            raise GitRemoteDoesNotExist(
+                f"Failed to get the Git remote url: {remote_name}") from err
+
+        return origin_url
+
     def _git_is_local_branch(self, branch: str) -> bool:
         try:
             stdout, _ = run_simple(["git", "rev-parse", "--symbolic-full-name",
@@ -364,15 +380,8 @@ class BatchFetchGit(BatchFetchBase):
             cmd = ["git", "submodule", "update", "--recursive"]
             self._run(cmd, cwd=str(self.git_local_dir), env=self.env)
 
-    def _repo_check_remote_origin(self):
-        cmd = ["git", "config", "remote.origin.url"]
-        try:
-            stdout, _ = run_simple(cmd,
-                                   env=self.env,
-                                   cwd=self.git_local_dir)
-            origin_url = stdout[0]
-        except IndexError:
-            origin_url = ""
+    def _repo_fix_remote_origin(self):
+        origin_url = self._git_get_remote("origin")
 
         if origin_url != self[self.main_key]:
             self.set_error(True)
