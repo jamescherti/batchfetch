@@ -36,7 +36,7 @@ class GitReferenceDoesNotExist(Exception):
     """The Git reference does not exist."""
 
 
-class GitRemoteDoesNotExist(Exception):
+class GitRemoteError(Exception):
     """The git remote does not exist."""
 
 
@@ -167,12 +167,13 @@ class BatchFetchGit(TaskBatchFetch):
 
     def _update_current_branch(self):
         try:
-            self.current_branch, _ = run_simple(
+            stdout, _ = run_simple(
                 ["git", "symbolic-ref", "--short", "HEAD"],
                 env=self.env,
                 cwd=self.git_local_dir,
             )
-        except subprocess.CalledProcessError:
+            self.current_branch = stdout[0]
+        except (IndexError, subprocess.CalledProcessError):
             # Not a symbolic ref
             self.current_branch = None
 
@@ -292,7 +293,7 @@ class BatchFetchGit(TaskBatchFetch):
                                    cwd=self.git_local_dir)
             origin_url = stdout[0]
         except (subprocess.CalledProcessError, IndexError) as err:
-            raise GitRemoteDoesNotExist(
+            raise GitRemoteError(
                 f"Failed to get the Git remote url: {remote_name}") from err
 
         return origin_url
@@ -313,9 +314,9 @@ class BatchFetchGit(TaskBatchFetch):
                 cwd=self.git_local_dir,
             )
             origin_url = stdout[0]
-        except IndexError as err:
-            raise GitRemoteDoesNotExist(
-                f"Failed to modify the Git remote url: {remote_name}") from err
+        except (subprocess.CalledProcessError, IndexError):
+            raise GitRemoteError(
+                f"Failed to modify the Git remote url: {remote_name}")
 
         return origin_url
 
@@ -409,23 +410,24 @@ class BatchFetchGit(TaskBatchFetch):
             origin_url = self._git_get_remote_url()
             if origin_url != correct_origin_url:
                 update_remote_origin = True
-        except GitRemoteDoesNotExist:
+        except GitRemoteError:
             update_remote_origin = True
 
         if update_remote_origin:
             # Update remote
             try:
                 self._git_set_remote_url(correct_origin_url)
-            except GitRemoteDoesNotExist:
+            except GitRemoteError:
                 # TODO handle errors
-                pass
+                raise
 
         # Get the current branch
-        try:
-            cmd = ["git", "branch",
-                   f"--set-upstream-to=origin/{self.current_branch}"]
-            _, _ = run_simple(cmd, env=self.env, cwd=self.git_local_dir)
-            # raise Exception(str(cmd))
-            # print(cmd) # TODO remove
-        except subprocess.CalledProcessError:
-            pass
+        if self.current_branch:
+            try:
+                cmd = ["git", "branch",
+                       f"--set-upstream-to=origin/{self.current_branch}"]
+                _, _ = run_simple(cmd, env=self.env, cwd=self.git_local_dir)
+                # raise Exception(str(cmd))
+                # print(cmd) # TODO remove
+            except subprocess.CalledProcessError:
+                raise
