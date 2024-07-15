@@ -94,7 +94,7 @@ class TaskBase:
         raise KeyError(f"The item '{key}' was not found in '{self.values}")
 
 
-class BatchFetchBase(TaskBase):
+class TaskBatchFetch(TaskBase):
     """Plugin downloader base class."""
 
     def __init__(self, data: Dict[str, Any], options: Dict[str, Any]):

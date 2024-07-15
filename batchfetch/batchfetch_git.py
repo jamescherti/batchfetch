@@ -28,7 +28,7 @@ from typing import List, Union
 
 from schema import Optional
 
-from .batchfetch_base import BatchFetchBase, BatchFetchError
+from .batchfetch_base import BatchFetchError, TaskBatchFetch
 from .helpers import run_simple
 
 
@@ -40,7 +40,7 @@ class GitRemoteDoesNotExist(Exception):
     """The git remote does not exist."""
 
 
-class BatchFetchGit(BatchFetchBase):
+class BatchFetchGit(TaskBatchFetch):
     """Clone or update a Git repository."""
 
     def __init__(self, *args, **kwargs):

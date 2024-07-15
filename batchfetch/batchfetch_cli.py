@@ -33,7 +33,7 @@ from colorama import Fore
 from schema import Optional, Or, Schema, SchemaError
 from setproctitle import setproctitle
 
-from .batchfetch_base import BatchFetchBase, BatchFetchError
+from .batchfetch_base import BatchFetchError, TaskBatchFetch
 from .batchfetch_git import BatchFetchGit
 
 
@@ -51,7 +51,7 @@ class BatchFetchCli:
 
         # Plugin
         self.batchfetch_schemas: Dict[Any, Any] = {}
-        self.batchfetch_classes: Dict[str, BatchFetchBase] = {}
+        self.batchfetch_classes: Dict[str, TaskBatchFetch] = {}
         self.cfg_schema: Dict[Any, Any] = {}
         self._plugin_add("git", BatchFetchGit)
 
