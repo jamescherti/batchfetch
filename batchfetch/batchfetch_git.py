@@ -283,8 +283,8 @@ class BatchFetchGit(BatchFetchBase):
 
         return git_merge
 
-    def _git_get_remote(self, remote_name: str = "origin") -> str:
-        cmd = ["git", "config", "remote.origin.url"]
+    def _git_get_remote_url(self, remote_name: str = "origin") -> str:
+        cmd = ["git", "config", f"remote.{remote_name}.url"]
         origin_url = ""
         try:
             stdout, _ = run_simple(cmd,
@@ -381,7 +381,7 @@ class BatchFetchGit(BatchFetchBase):
             self._run(cmd, cwd=str(self.git_local_dir), env=self.env)
 
     def _repo_fix_remote_origin(self):
-        origin_url = self._git_get_remote("origin")
+        origin_url = self._git_get_remote_url()
 
         if origin_url != self[self.main_key]:
             self.set_error(True)
