@@ -44,6 +44,8 @@ class BatchFetchGit(TaskBatchFetch):
     """Clone or update a Git repository."""
 
     def __init__(self, *args, **kwargs):
+        self._git_fetch_origin_done = False
+
         super().__init__(*args, **kwargs)
         self.env["GIT_TERMINAL_PROMPT"] = "0"
         self.env["GIT_PAGER"] = ""
@@ -261,8 +263,7 @@ class BatchFetchGit(TaskBatchFetch):
             return git_merge
 
         # Fetch
-        cmd = ["git", "fetch", "origin"]
-        self._run(cmd, cwd=str(self.git_local_dir), env=self.env)
+        self._git_fetch_origin()
 
         # Merge
         real_branch = self._git_is_local_branch("HEAD")
@@ -298,7 +299,8 @@ class BatchFetchGit(TaskBatchFetch):
 
         return origin_url
 
-    def _git_set_remote_url(self, url: str, remote_name: str = "origin") -> str:
+    def _git_set_remote_url(self, url: str,
+                            remote_name: str = "origin") -> str:
         origin_url = ""
         try:
             run_simple(["git", "remote", "remove", remote_name],
@@ -314,9 +316,10 @@ class BatchFetchGit(TaskBatchFetch):
                 cwd=self.git_local_dir,
             )
             origin_url = stdout[0]
-        except (subprocess.CalledProcessError, IndexError):
+        except (subprocess.CalledProcessError, IndexError) as err:
             raise GitRemoteError(
-                f"Failed to modify the Git remote url: {remote_name}")
+                f"Failed to modify the Git remote url: {remote_name}") \
+                from err
 
         return origin_url
 
@@ -386,6 +389,13 @@ class BatchFetchGit(TaskBatchFetch):
 
         return branch_changed
 
+    def _git_fetch_origin(self):
+        # Fetch
+        if not self._git_fetch_origin_done:
+            cmd = ["git", "fetch", "origin"]
+            self._run(cmd, cwd=str(self.git_local_dir), env=self.env)
+            self._git_fetch_origin_done = True
+
     def _repo_update_submodules(self):
         # This parameter instructs Git to initiate the update
         # process for submodules:
@@ -419,15 +429,15 @@ class BatchFetchGit(TaskBatchFetch):
                 self._git_set_remote_url(correct_origin_url)
             except GitRemoteError:
                 # TODO handle errors
-                raise
+                return
 
         # Get the current branch
         if self.current_branch:
             try:
+                self._git_fetch_origin()
                 cmd = ["git", "branch",
                        f"--set-upstream-to=origin/{self.current_branch}"]
                 _, _ = run_simple(cmd, env=self.env, cwd=self.git_local_dir)
-                # raise Exception(str(cmd))
-                # print(cmd) # TODO remove
-            except subprocess.CalledProcessError:
-                raise
+                # TODO: handle errors
+            except subprocess.CalledProcessError as err:
+                raise BatchFetchError(str(err)) from err
