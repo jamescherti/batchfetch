@@ -216,8 +216,11 @@ def parse_args():
     usage = "%(prog)s [--option] [args]"
     parser = argparse.ArgumentParser(description=desc, usage=usage)
 
-    parser.add_argument("batchfetch_files", metavar="N", type=str, nargs="*",
-                        help=("Specify the batchfetch YAML file(s) "
+    parser.add_argument("-f",
+                        "--file",
+                        default=None,
+                        required=False,
+                        help=("Specify the batchfetch YAML file "
                               "(default: './batchfetch.yaml')."))
 
     parser.add_argument(
@@ -231,24 +234,24 @@ def parse_args():
     )
 
     args = parser.parse_args()
-    if not args.batchfetch_files:
-        args.batchfetch_files = ["./batchfetch.yaml"]
 
-    for batchfetch_file in args.batchfetch_files:
-        if not Path(batchfetch_file).is_file():
-            print(f"Error: File not found: {batchfetch_file}",
-                  file=sys.stderr)
-            sys.exit(1)
+    if not args.file:
+        args.file = "./batchfetch.yaml"
+
+    if not Path(args.file).is_file():
+        print(f"Error: File not found: {args.file}",
+              file=sys.stderr)
+        sys.exit(1)
 
     return args
 
 
-def run_batchfetch_procedure(batchfetch_file: Path, args) -> int:
+def run_batchfetch_procedure(file: Path, args) -> int:
     errno = 0
     batchfetch_cli = BatchFetchCli(verbose=args.verbose,
                                    max_workers=int(args.jobs))
-    batchfetch_cli.load(batchfetch_file)
-    os.chdir(batchfetch_file.parent)
+    batchfetch_cli.load(file)
+    os.chdir(file.parent)
 
     try:
         if not batchfetch_cli.run_tasks():
@@ -276,14 +279,15 @@ def command_line_interface():
 
         args = parse_args()
         done = []
-        for batchfetch_file in args.batchfetch_files:
-            batchfetch_file = Path(batchfetch_file)
-            batchfetch_file_resolved = batchfetch_file.resolve()
-            if batchfetch_file_resolved in done:
-                continue
+        file = Path(args.file)
+        file_resolved = file.resolve()
+        if not file_resolved:
+            print(f"Error: cannot resolve the path {file}",
+                  file=sys.stderr)
+            sys.exit(1)
 
-            done.append(batchfetch_file_resolved)
-            errno |= run_batchfetch_procedure(batchfetch_file, args)
+        done.append(file_resolved)
+        errno |= run_batchfetch_procedure(file, args)
 
         sys.exit(errno)
     except BrokenPipeError:
