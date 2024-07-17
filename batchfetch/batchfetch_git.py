@@ -214,49 +214,84 @@ class BatchFetchGit(TaskBatchFetch):
 
         # Merge
         do_git_pull = self["git_pull"]
-        if self["reference"]:
+        if not self["reference"]:
+            self.add_output(
+                self.indent_spaces +
+                "[INFO] Git fetch origin reason: " +
+                f"No 'reference:' specified." +
+                "\n")
+        else:
             do_git_pull = False
             commit_ref = None
 
             try:
-                # Returns the commit ref of the branch or commit
-                #
-                # If the tag is annotated, it points to a tag object, not
-                # directly to a commit. You need to resolve it to the commit it
-                # points to. Using `git rev-parse <tagname>^{commit}` allows
-                # getting the right reference.
-                commit_ref = self._git_tags(self["reference"] + "^{commit}")[0]
+                # Check if the reference such as
+                # 0560fe21d1173b2221fd8c600fab818f7eecbad4 exist
+                commit_ref = self._git_tags(self["reference"])[0]
+                commit_ref = commit_ref.strip().lower()
             except GitReferenceDoesNotExist:
-                # The wanted reference does not exist. We should git pull in
-                # case we can get the reference
-                do_git_pull = True
-            else:  # The reference exists
+                pass
+
+            if not commit_ref:
                 try:
-                    cmd = ["git", "show-ref", "--verify", "--quiet",
-                           f"refs/heads/{self['reference']}"]
-                    run_simple(cmd, env=self.env, cwd=self.git_local_dir)
+                    # If the tag is annotated, it points to a tag object, not
+                    # directly to a commit. You need to resolve it to the
+                    # commit it points to. Using `git rev-parse
+                    # <tagname>^{commit}` allows getting the right reference.
+                    commit_ref = self._git_tags("origin/" + self["reference"] +
+                                                "^{commit}")[0]
+                    commit_ref = commit_ref.strip().lower()
+                except GitReferenceDoesNotExist:
+                    # The branch does not exist. We should git pull in case we
+                    # can get the reference
                     do_git_pull = True
-                except subprocess.CalledProcessError:
-                    pass
+                    self.add_output(
+                        self.indent_spaces +
+                        "[INFO] Git fetch origin reason:" +
+                        f"The reference does not exist: {self['reference']}" +
+                        "\n")
+
 
                 if not do_git_pull:
+                    # Check if it is a branch or a tag such as v1.1.1
+                    is_tag = False
                     try:
-                        # If the tag is annotated, it points to a tag object,
-                        # not directly to a commit. You need to resolve it to
-                        # the commit it points to. Using `git rev-parse
-                        # <tagname>^{commit}` allows getting the right
-                        # reference.
-                        commit_ref_head = self._git_tags("HEAD^{commit}")[0]
-                    except GitReferenceDoesNotExist:
-                        # HEAD is detached
-                        commit_ref_head = None
-
-                    # The wanted commit reference does not exist
-                    # Or the commit ref of HEAD hasn't changed
-                    if commit_ref and commit_ref_head == commit_ref:
-                        do_git_pull = False
-                    else:
+                        # Check if the branch is a tag or a branch
+                        cmd = ["git", "show-ref", "--verify", "--quiet",
+                               f"refs/heads/{self['reference']}"]
+                        run_simple(cmd, env=self.env, cwd=self.git_local_dir)
+                        self.add_output(
+                            self.indent_spaces +
+                            "[INFO] Git fetch origin reason:" +
+                            f"{self['reference']} is a branch, not a tag" +
+                            "\n")
                         do_git_pull = True
+                    except subprocess.CalledProcessError:
+                        pass
+
+            # if not do_git_pull:
+            #     try:
+            #         # If the tag is annotated, it points to a tag object,
+            #         # not directly to a commit. You need to resolve it to
+            #         # the commit it points to. Using `git rev-parse
+            #         # <tagname>^{commit}` allows getting the right
+            #         # reference.
+            #         commit_ref_head = self._git_tags("HEAD^{commit}")[0]
+            #         commit_ref_head = commit_ref_head.strip().lower()
+            #     except GitReferenceDoesNotExist:
+            #         # HEAD is detached
+            #         commit_ref_head = None
+            #
+            #     # The wanted commit reference does not exist
+            #     # Or the commit ref of HEAD hasn't changed
+            #     if not commit_ref_head or commit_ref_head != commit_ref:
+            #         self.add_output(
+            #             self.indent_spaces +
+            #             "[INFO] Git fetch origin reason: "
+            #             f"Commit ref head '{commit_ref_head}' != "
+            #             f"commit ref '{commit_ref_head}'"
+            #             "\n")
+            #         do_git_pull = True
 
         if not do_git_pull:
             self.add_output(self.indent_spaces + "[INFO] git pull ignored\n")
@@ -342,13 +377,19 @@ class BatchFetchGit(TaskBatchFetch):
 
     def _git_tags(self, branch: str) -> List[str]:
         stdout: List[str] = []
+        error = False
         try:
             stdout, _ = run_simple(["git", "rev-parse", "--verify", branch],
                                    env=self.env,
                                    cwd=self.git_local_dir)
-        except subprocess.CalledProcessError as err:
+            if not stdout:
+                error = True
+        except subprocess.CalledProcessError:
+            error = True
+
+        if error:
             raise GitReferenceDoesNotExist(
-                f"The reference '{branch}' does not exist.") from err
+                f"The reference '{branch}' does not exist.")
 
         return stdout
 
@@ -416,6 +457,7 @@ class BatchFetchGit(TaskBatchFetch):
     def _repo_fix_remote_origin(self):
         correct_origin_url = self[self.main_key]
         update_remote_origin = False
+
         try:
             origin_url = self._git_get_remote_url()
             if origin_url != correct_origin_url:
@@ -431,13 +473,22 @@ class BatchFetchGit(TaskBatchFetch):
                 # TODO handle errors
                 return
 
-        # Get the current branch
-        if self.current_branch:
-            try:
-                self._git_fetch_origin()
-                cmd = ["git", "branch",
-                       f"--set-upstream-to=origin/{self.current_branch}"]
-                _, _ = run_simple(cmd, env=self.env, cwd=self.git_local_dir)
-                # TODO: handle errors
-            except subprocess.CalledProcessError as err:
-                raise BatchFetchError(str(err)) from err
+            # Get the current branch
+            if self.current_branch:
+                try:
+                    self.add_output(
+                        self.indent_spaces +
+                        "[INFO] Git fetch origin reason: "
+                        f"we need to set the upstream "
+                        f"origin to {self.current_branch}"
+                        "\n"
+                    )
+                    self._git_fetch_origin()
+
+                    cmd = ["git", "branch",
+                        f"--set-upstream-to=origin/{self.current_branch}"]
+                    _, _ = run_simple(cmd, env=self.env,
+                                      cwd=self.git_local_dir)
+                    # TODO: handle errors
+                except subprocess.CalledProcessError as err:
+                    raise BatchFetchError(str(err)) from err
