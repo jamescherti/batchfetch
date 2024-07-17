@@ -251,7 +251,6 @@ class BatchFetchGit(TaskBatchFetch):
                         f"The reference does not exist: {self['reference']}" +
                         "\n")
 
-
                 if not do_git_pull:
                     # Check if it is a branch or a tag such as 1.1.3
                     is_tag = False
@@ -302,10 +301,11 @@ class BatchFetchGit(TaskBatchFetch):
 
         # Merge
         real_branch = self._git_is_local_branch("HEAD")
-        if real_branch:
+        if real_branch and self.current_branch:
             # TODO: only merge when difference from upstream
             commit_ref_head = self._git_ref(cwd=self.git_local_dir)
-            self._run(["git", "merge", "--ff-only"],
+            self._run(["git", "merge", "--ff-only",
+                       f"origin/{self.current_branch}"],
                       cwd=str(self.git_local_dir), env=self.env)
             git_ref_after_merge = self._git_ref(cwd=self.git_local_dir)
             if commit_ref_head != git_ref_after_merge:
@@ -353,8 +353,7 @@ class BatchFetchGit(TaskBatchFetch):
             origin_url = stdout[0]
         except (subprocess.CalledProcessError, IndexError) as err:
             raise GitRemoteError(
-                f"Failed to modify the Git remote url: {remote_name}") \
-                from err
+                f"Failed to modify the Git remote url: {remote_name}") from err
 
         return origin_url
 
@@ -486,7 +485,7 @@ class BatchFetchGit(TaskBatchFetch):
                     self._git_fetch_origin()
 
                     cmd = ["git", "branch",
-                        f"--set-upstream-to=origin/{self.current_branch}"]
+                           f"--set-upstream-to=origin/{self.current_branch}"]
                     _, _ = run_simple(cmd, env=self.env,
                                       cwd=self.git_local_dir)
                     # TODO: handle errors
