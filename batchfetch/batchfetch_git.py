@@ -253,7 +253,7 @@ class BatchFetchGit(TaskBatchFetch):
 
 
                 if not do_git_pull:
-                    # Check if it is a branch or a tag such as v1.1.1
+                    # Check if it is a branch or a tag such as 1.1.3
                     is_tag = False
                     try:
                         # Check if the branch is a tag or a branch
