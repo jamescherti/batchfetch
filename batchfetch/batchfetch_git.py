@@ -46,6 +46,9 @@ class BatchFetchGit(TaskBatchFetch):
     def __init__(self, *args, **kwargs):
         self._git_fetch_origin_done = False
 
+        self.branch_commit_ref = None
+        self.is_branch = False
+
         super().__init__(*args, **kwargs)
         self.env["GIT_TERMINAL_PROMPT"] = "0"
         self.env["GIT_PAGER"] = ""
@@ -132,7 +135,10 @@ class BatchFetchGit(TaskBatchFetch):
                 self._repo_reset()
 
                 git_merge_done = self._repo_pull()
-                git_branch_changed = self._repo_fix_branch()
+                git_branch_changed = False
+                if self.is_branch:
+                    git_branch_changed = self._repo_fix_branch()
+
                 if git_merge_done or git_branch_changed:
                     self._repo_update_submodules()
 
@@ -178,6 +184,19 @@ class BatchFetchGit(TaskBatchFetch):
         except (IndexError, subprocess.CalledProcessError):
             # Not a symbolic ref
             self.current_branch = None
+
+        if self.current_branch:
+            try:
+                # If the tag is annotated, it points to a tag object, not
+                # directly to a commit. You need to resolve it to the
+                # commit it points to. Using `git rev-parse
+                # <tagname>^{commit}` allows getting the right reference.
+                commit_ref = self._git_tags("origin/" + self["reference"] +
+                                            "^{commit}")[0]
+                self.branch_commit_ref = commit_ref.strip().lower()
+                self.is_branch = True
+            except GitReferenceDoesNotExist:
+                pass
 
     def _repo_delete(self):
         if not self.git_local_dir.exists():
@@ -232,28 +251,14 @@ class BatchFetchGit(TaskBatchFetch):
             except GitReferenceDoesNotExist:
                 pass
 
-            if not commit_ref:
-                try:
-                    # If the tag is annotated, it points to a tag object, not
-                    # directly to a commit. You need to resolve it to the
-                    # commit it points to. Using `git rev-parse
-                    # <tagname>^{commit}` allows getting the right reference.
-                    commit_ref = self._git_tags("origin/" + self["reference"] +
-                                                "^{commit}")[0]
-                    commit_ref = commit_ref.strip().lower()
-                except GitReferenceDoesNotExist:
-                    # The branch does not exist. We should git pull in case we
-                    # can get the reference
-                    do_git_pull = True
-                    self.add_output(
-                        self.indent_spaces +
-                        "[INFO] Git fetch origin reason:" +
-                        f"The reference does not exist: {self['reference']}" +
-                        "\n")
+            if not commit_ref and not self.is_branch:
+                self.add_output(
+                    self.indent_spaces +
+                    "[INFO] Git fetch origin reason:" +
+                    f"The reference does not exist: {self['reference']}" +
+                    "\n")
 
                 if not do_git_pull:
-                    # Check if it is a branch or a tag such as 1.1.3
-                    is_tag = False
                     try:
                         # Check if the branch is a tag or a branch
                         cmd = ["git", "show-ref", "--verify", "--quiet",
@@ -407,7 +412,8 @@ class BatchFetchGit(TaskBatchFetch):
             # Also check the commit reference in case
             # branch is a commit reference instead of a tag
             try:
-                git_ref_branch = self._git_tags(self["reference"] +
+                git_ref_branch = self._git_tags("origin/" +
+                                                self["reference"] +
                                                 "^{commit}")[0]
             except GitReferenceDoesNotExist as err:
                 raise BatchFetchError(f"The branch '{self['reference']}' "
