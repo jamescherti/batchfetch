@@ -234,11 +234,10 @@ class BatchFetchGit(TaskBatchFetch):
         # Merge
         do_git_pull = self["git_pull"]
         if not self["reference"]:
-            self.add_output(
-                self.indent_spaces +
+            do_git_pull = True
+            self.add_output(self.indent_spaces +
                 "[INFO] Git fetch origin reason: " +
-                f"No 'reference:' specified." +
-                "\n")
+                "No 'reference:' specified\n")
         else:
             do_git_pull = False
             commit_ref = None
