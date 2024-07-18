@@ -22,7 +22,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="batchfetch",
-    version="1.1.5",
+    version="1.1.6",
     packages=find_packages(),
     description="Efficiently clone and pull multiple Git repositories.",
     license="GPLv3",
