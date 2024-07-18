@@ -128,7 +128,7 @@ class BatchFetchGit(TaskBatchFetch):
             # Update
             if self.git_local_dir.is_dir():
                 # Pre exec
-                self._update_current_branch()
+                self._update_current_branch_name()
                 self._repo_fix_remote_origin()
                 self._run_pre_exec(cwd=self.git_local_dir)
 
@@ -173,14 +173,16 @@ class BatchFetchGit(TaskBatchFetch):
             return ""
         return output
 
-    def _update_current_branch(self):
+    def _update_current_branch_name(self):
         try:
+            # This returns the branch name
             stdout, _ = run_simple(
                 ["git", "symbolic-ref", "--short", "HEAD"],
                 env=self.env,
                 cwd=self.git_local_dir,
             )
-            self.current_branch = stdout[0]
+            self.current_branch = stdout[0].strip()
+            self.is_branch = True
         except (IndexError, subprocess.CalledProcessError):
             # Not a symbolic ref
             self.current_branch = None
@@ -191,10 +193,9 @@ class BatchFetchGit(TaskBatchFetch):
                 # directly to a commit. You need to resolve it to the
                 # commit it points to. Using `git rev-parse
                 # <tagname>^{commit}` allows getting the right reference.
-                commit_ref = self._git_tags("origin/" + self["reference"] +
+                commit_ref = self._git_tags(self["reference"] +
                                             "^{commit}")[0]
-                self.branch_commit_ref = commit_ref.strip().lower()
-                self.is_branch = True
+                self.branch_commit_ref = commit_ref.strip()
             except GitReferenceDoesNotExist:
                 pass
 
@@ -233,11 +234,13 @@ class BatchFetchGit(TaskBatchFetch):
 
         # Merge
         do_git_pull = self["git_pull"]
-        if not self["reference"]:
+        if self.is_branch:
+            do_git_pull = True
+        elif not self["reference"]:
             do_git_pull = True
             self.add_output(self.indent_spaces +
-                "[INFO] Git fetch origin reason: " +
-                "No 'reference:' specified\n")
+                            "[INFO] Git fetch origin reason: " +
+                            "No 'reference:' specified\n")
         else:
             do_git_pull = False
             commit_ref = None
@@ -246,7 +249,7 @@ class BatchFetchGit(TaskBatchFetch):
                 # Check if the reference such as
                 # 0560fe21d1173b2221fd8c600fab818f7eecbad4 exist
                 commit_ref = self._git_tags(self["reference"])[0]
-                commit_ref = commit_ref.strip().lower()
+                commit_ref = commit_ref.strip()
             except GitReferenceDoesNotExist:
                 pass
 
@@ -280,7 +283,7 @@ class BatchFetchGit(TaskBatchFetch):
             #         # <tagname>^{commit}` allows getting the right
             #         # reference.
             #         commit_ref_head = self._git_tags("HEAD^{commit}")[0]
-            #         commit_ref_head = commit_ref_head.strip().lower()
+            #         commit_ref_head = commit_ref_head.strip()
             #     except GitReferenceDoesNotExist:
             #         # HEAD is detached
             #         commit_ref_head = None
@@ -411,8 +414,7 @@ class BatchFetchGit(TaskBatchFetch):
             # Also check the commit reference in case
             # branch is a commit reference instead of a tag
             try:
-                git_ref_branch = self._git_tags("origin/" +
-                                                self["reference"] +
+                git_ref_branch = self._git_tags(self["reference"] +
                                                 "^{commit}")[0]
             except GitReferenceDoesNotExist as err:
                 raise BatchFetchError(f"The branch '{self['reference']}' "
@@ -430,7 +432,7 @@ class BatchFetchGit(TaskBatchFetch):
                 branch_changed = True
 
                 # Read branch again
-                self._update_current_branch()
+                self._update_current_branch_name()
 
         return branch_changed
 
