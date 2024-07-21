@@ -414,11 +414,17 @@ class BatchFetchGit(TaskBatchFetch):
             # Also check the commit reference in case
             # branch is a commit reference instead of a tag
             try:
-                git_ref_branch = self._git_tags(self["reference"] +
+                # Check if the branch exists
+                git_ref_branch = self._git_tags("origin/" +
+                                                self["reference"] +
                                                 "^{commit}")[0]
             except GitReferenceDoesNotExist as err:
-                raise BatchFetchError(f"The branch '{self['reference']}' "
-                                      "does not exist.") from err
+                # Check if the commit ref exists
+                try:
+                    git_ref_branch = self._git_tags(self["reference"])[0]
+                except GitReferenceDoesNotExist as err:
+                    raise BatchFetchError(f"The branch '{self['reference']}' "
+                                          "does not exist.") from err
 
             if git_ref_after_merge != git_ref_branch and \
                     self["reference"] not in git_tags:
