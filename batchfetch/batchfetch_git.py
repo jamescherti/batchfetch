@@ -136,8 +136,7 @@ class BatchFetchGit(TaskBatchFetch):
 
                 git_merge_done = self._repo_pull()
                 git_branch_changed = False
-                if self.is_branch:
-                    git_branch_changed = self._repo_fix_branch()
+                git_branch_changed = self._repo_fix_branch()
 
                 if git_merge_done or git_branch_changed:
                     self._repo_update_submodules()
@@ -254,50 +253,52 @@ class BatchFetchGit(TaskBatchFetch):
                 pass
 
             if not commit_ref and not self.is_branch:
+                do_git_pull = True
                 self.add_output(
                     self.indent_spaces +
-                    "[INFO] Git fetch origin reason:" +
+                    "[INFO] Git fetch origin reason: " +
                     f"The reference does not exist: {self['reference']}" +
                     "\n")
 
-                if not do_git_pull:
-                    try:
-                        # Check if the branch is a tag or a branch
-                        cmd = ["git", "show-ref", "--verify", "--quiet",
-                               f"refs/heads/{self['reference']}"]
-                        run_simple(cmd, env=self.env, cwd=self.git_local_dir)
-                        self.add_output(
-                            self.indent_spaces +
-                            "[INFO] Git fetch origin reason:" +
-                            f"{self['reference']} is a branch, not a tag" +
-                            "\n")
-                        do_git_pull = True
-                    except subprocess.CalledProcessError:
-                        pass
+            if not do_git_pull:
+                try:
+                    # Check if the branch is a tag or a branch
+                    cmd = ["git", "show-ref", "--verify", "--quiet",
+                           f"refs/heads/{self['reference']}"]
+                    run_simple(cmd, env=self.env, cwd=self.git_local_dir)
+                    self.add_output(
+                        self.indent_spaces +
+                        "[INFO] Git fetch origin reason:" +
+                        f"{self['reference']} is a branch, not a tag" +
+                        "\n")
+                    do_git_pull = True
+                except subprocess.CalledProcessError:
+                    pass
 
-            # if not do_git_pull:
-            #     try:
-            #         # If the tag is annotated, it points to a tag object,
-            #         # not directly to a commit. You need to resolve it to
-            #         # the commit it points to. Using `git rev-parse
-            #         # <tagname>^{commit}` allows getting the right
-            #         # reference.
-            #         commit_ref_head = self._git_tags("HEAD^{commit}")[0]
-            #         commit_ref_head = commit_ref_head.strip()
-            #     except GitReferenceDoesNotExist:
-            #         # HEAD is detached
-            #         commit_ref_head = None
-            #
-            #     # The wanted commit reference does not exist
-            #     # Or the commit ref of HEAD hasn't changed
-            #     if not commit_ref_head or commit_ref_head != commit_ref:
-            #         self.add_output(
-            #             self.indent_spaces +
-            #             "[INFO] Git fetch origin reason: "
-            #             f"Commit ref head '{commit_ref_head}' != "
-            #             f"commit ref '{commit_ref_head}'"
-            #             "\n")
-            #         do_git_pull = True
+            if not do_git_pull and commit_ref:
+                # This is to check if a tag has been changed
+                try:
+                    # If the tag is annotated, it points to a tag object,
+                    # not directly to a commit. You need to resolve it to
+                    # the commit it points to. Using `git rev-parse
+                    # <tagname>^{commit}` allows getting the right
+                    # reference.
+                    commit_ref_head = self._git_tags("HEAD^{commit}")[0]
+                    commit_ref_head = commit_ref_head.strip()
+                except GitReferenceDoesNotExist:
+                    # HEAD is detached
+                    commit_ref_head = None
+
+                # The wanted commit reference does not exist
+                # Or the commit ref of HEAD hasn't changed
+                if not commit_ref_head or commit_ref_head != commit_ref:
+                    self.add_output(
+                        self.indent_spaces +
+                        "[INFO] Git fetch origin reason: "
+                        f"Commit ref head '{commit_ref_head}' != "
+                        f"commit ref '{commit_ref_head}'"
+                        "\n")
+                    do_git_pull = True
 
         if not do_git_pull:
             self.add_output(self.indent_spaces + "[INFO] git pull ignored\n")
