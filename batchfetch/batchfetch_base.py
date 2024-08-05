@@ -145,24 +145,19 @@ class TaskBatchFetch(TaskBase):
 
     def _run_pre_exec(self, cwd: os.PathLike = Path(".")):
         self._initialize_data()
-        for pre_exec in self["exec_before"]:
-            if not pre_exec:
-                continue
+        cmd = self["exec_before"]
+        if self["delete"] or not cmd:
+            return
 
-            self._run(pre_exec, cwd=str(cwd), env=self.env,
-                      spaces=self.indent)
+        self._run(cmd, cwd=str(cwd), env=self.env, spaces=self.indent)
 
     def _run_post_exec(self, cwd: os.PathLike = Path(".")):
         self._initialize_data()
-        if self["delete"] or not self.is_changed():
+        cmd = self["exec_after"]
+        if not cmd or self["delete"] or not self.is_changed():
             return
 
-        for post_exec in self["exec_after"]:
-            if not post_exec:
-                continue
-
-            self._run(post_exec, cwd=str(cwd), env=self.env,
-                      spaces=self.indent)
+        self._run(cmd, cwd=str(cwd), env=self.env, spaces=self.indent)
 
     def is_changed(self) -> bool:
         self._initialize_data()
