@@ -190,6 +190,7 @@ class TaskBatchFetch(TaskBase):
         self.values["result"]["output"] += output
 
     def get_output(self) -> str:
+        """Return the output."""
         self._initialize_data()
         return str(self.values["result"]["output"])
 
