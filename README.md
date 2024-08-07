@@ -37,12 +37,12 @@ tasks:
   # Clone the tag 1.5 of the consult repository to the './consult'
   # directory
   - git: https://github.com/minad/consult
-    reference: "1.5"
+    revision: "1.5"
 
   # Clone the s.el repository to the './another-name.el' directory
   - git: https://github.com/magnars/s.el
     path: another-name.el
-    reference: dda84d38fffdaf0c9b12837b504b402af910d01d
+    revision: dda84d38fffdaf0c9b12837b504b402af910d01d
 
   # Delete './impatient-mode'
   - git: https://github.com/skeeto/impatient-mode
