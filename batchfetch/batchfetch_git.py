@@ -103,7 +103,7 @@ class BatchFetchGit(TaskBatchFetch):
 
         # Backward compatibility
         if "reference" in self._item_values \
-                and not "revision" in self._item_values:
+                and "revision" not in self._item_values:
             self._item_values["revision"] = "reference"
 
         is_clone = False
@@ -425,11 +425,11 @@ class BatchFetchGit(TaskBatchFetch):
                 git_ref_branch = self._git_tags("origin/" +
                                                 self["revision"] +
                                                 "^{commit}")[0]
-            except GitRevisionDoesNotExist as err:
+            except GitRevisionDoesNotExist:
                 # Check if the commit ref exists
                 try:
                     git_ref_branch = self._git_tags(self["revision"])[0]
-                except GitRevisionoesNotExist as err:
+                except GitRevisionDoesNotExist as err:
                     raise BatchFetchError(f"The branch '{self['revision']}' "
                                           "does not exist.") from err
 
