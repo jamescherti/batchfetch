@@ -274,7 +274,7 @@ class BatchFetchGit(TaskBatchFetch):
                     run_simple(cmd, env=self.env, cwd=self.git_local_dir)
                     self.add_output(
                         self.indent_spaces +
-                        "[INFO] Git fetch origin reason:" +
+                        "[INFO] Git fetch origin reason: " +
                         f"{self['revision']} is a branch, not a tag" +
                         "\n")
                     do_git_pull = True
