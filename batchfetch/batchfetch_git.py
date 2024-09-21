@@ -140,11 +140,16 @@ class BatchFetchGit(TaskBatchFetch):
 
                 self._repo_reset()
 
-                git_merge_done = self._repo_pull()
+                git_fetch_done = self._repo_fetch()
+
                 git_branch_changed = False
                 git_branch_changed = self._repo_fix_branch()
 
-                if git_merge_done or git_branch_changed:
+                git_merge_done = False
+                if git_fetch_done:
+                    git_merge_done = self._git_merge()
+
+                if (git_fetch_done and git_merge_done) or git_branch_changed:
                     self._repo_update_submodules()
 
                 if self.get_changed():
@@ -186,7 +191,7 @@ class BatchFetchGit(TaskBatchFetch):
                 env=self.env,
                 cwd=self.git_local_dir,
             )
-            self.current_branch = stdout[0].strip()
+            self.current_branch = stdout[0]
             self.is_branch = True
         except (IndexError, subprocess.CalledProcessError):
             # Not a symbolic ref
@@ -234,20 +239,18 @@ class BatchFetchGit(TaskBatchFetch):
         cmd = ["git", "reset", "--hard", "HEAD"]
         self._run(cmd, cwd=str(self.git_local_dir), env=self.env)
 
-    def _repo_pull(self):
-        git_merge = False
-
+    def _repo_fetch(self):
         # Merge
-        do_git_pull = self["git_pull"]
+        do_git_fetch = self["git_pull"]
         if self.is_branch:
-            do_git_pull = True
+            do_git_fetch = True
         elif not self["revision"]:
-            do_git_pull = True
+            do_git_fetch = True
             self.add_output(self.indent_spaces +
                             "[INFO] Git fetch origin reason: " +
                             "No 'revision:' specified\n")
         else:
-            do_git_pull = False
+            do_git_fetch = False
             commit_ref = None
 
             try:
@@ -259,14 +262,14 @@ class BatchFetchGit(TaskBatchFetch):
                 pass
 
             if not commit_ref and not self.is_branch:
-                do_git_pull = True
+                do_git_fetch = True
                 self.add_output(
                     self.indent_spaces +
                     "[INFO] Git fetch origin reason: " +
                     f"The revision does not exist: {self['revision']}" +
                     "\n")
 
-            if not do_git_pull:
+            if not do_git_fetch:
                 try:
                     # Check if the branch is a tag or a branch
                     cmd = ["git", "show-ref", "--verify", "--quiet",
@@ -277,11 +280,11 @@ class BatchFetchGit(TaskBatchFetch):
                         "[INFO] Git fetch origin reason: " +
                         f"{self['revision']} is a branch, not a tag" +
                         "\n")
-                    do_git_pull = True
+                    do_git_fetch = True
                 except subprocess.CalledProcessError:
                     pass
 
-            if not do_git_pull and commit_ref:
+            if not do_git_fetch and commit_ref:
                 # This is to check if a tag has been changed
                 try:
                     # If the tag is annotated, it points to a tag object,
@@ -304,14 +307,18 @@ class BatchFetchGit(TaskBatchFetch):
                         f"Commit ref head '{commit_ref_head}' != "
                         f"commit ref '{commit_ref_head}'"
                         "\n")
-                    do_git_pull = True
+                    do_git_fetch = True
 
-        if not do_git_pull:
-            self.add_output(self.indent_spaces + "[INFO] git pull ignored\n")
-            return git_merge
+        if not do_git_fetch:
+            self.add_output(self.indent_spaces + "[INFO] git fetch ignored\n")
+            return False
 
         # Fetch
         self._git_fetch_origin()
+        return True
+
+    def _git_merge(self):
+        git_merge = False
 
         # Merge
         real_branch = self._git_is_local_branch("HEAD")
