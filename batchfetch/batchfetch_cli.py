@@ -92,6 +92,11 @@ class BatchFetchCli:
         try:
             with open(path, "r", encoding="utf-8") as fhandler:
                 yaml_dict = yaml.load(fhandler, Loader=yaml.FullLoader)
+                if not isinstance(yaml_dict, dict):
+                    print(f"Error: Invalid format: {yaml_dict}.",
+                          file=sys.stderr)
+                    sys.exit(1)
+
                 self._loads(dict(yaml_dict))
         except OSError as err:
             raise BatchFetchError(str(err)) from err
