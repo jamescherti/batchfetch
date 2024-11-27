@@ -118,8 +118,8 @@ class BatchFetchGit(TaskBatchFetch):
         else:
             update_type = "UPDATE"
 
-        self.add_output(f"[GIT {update_type}] {self[self.main_key]}" +
-                        (f" (Ref: {self['revision']})"
+        self.add_output(f"[GIT {update_type}] {self[self.main_key]}"
+                        + (f" (Ref: {self['revision']})"
                          if self["revision"] else "") + "\n")
 
         try:
@@ -138,7 +138,7 @@ class BatchFetchGit(TaskBatchFetch):
                 self._repo_fix_remote_origin()
                 self._run_pre_exec(cwd=self.git_local_dir)
 
-                self._repo_reset()
+                # self._repo_reset()
 
                 git_fetch_done = self._repo_fetch()
 
@@ -160,10 +160,10 @@ class BatchFetchGit(TaskBatchFetch):
         except subprocess.CalledProcessError as err:
             self.set_error(True)
             self.add_output(self.indent_spaces + "[ERROR] " + str(err) + "\n")
-            self.add_output(self.indent_spaces +
-                            textwrap.indent(err.stdout, " " * self.indent) +
-                            "\n" +
-                            textwrap.indent(err.stderr, " " * self.indent))
+            self.add_output(self.indent_spaces
+                            + textwrap.indent(err.stdout, " " * self.indent)
+                            + "\n"
+                            + textwrap.indent(err.stderr, " " * self.indent))
 
         if not self.is_error() and not self.is_changed():
             self.add_output(self.indent_spaces + "[INFO] Nothing to do.\n")
@@ -203,8 +203,8 @@ class BatchFetchGit(TaskBatchFetch):
                 # directly to a commit. You need to resolve it to the
                 # commit it points to. Using `git rev-parse
                 # <tagname>^{commit}` allows getting the right revision.
-                commit_ref = self._git_tags(self["revision"] +
-                                            "^{commit}")[0]
+                commit_ref = self._git_tags(self["revision"]
+                                            + "^{commit}")[0]
                 self.branch_commit_ref = commit_ref.strip()
             except GitRevisionDoesNotExist:
                 pass
@@ -214,15 +214,15 @@ class BatchFetchGit(TaskBatchFetch):
             self.add_output(self.indent_spaces + "[INFO] Already deleted\n")
         elif not self.git_local_dir.joinpath(".git").is_dir():
             self.add_output(
-                self.indent_spaces +
-                f"# Cannot be deleted because '{self.git_local_dir}' is "
+                self.indent_spaces
+                + f"# Cannot be deleted because '{self.git_local_dir}' is "
                 "not a Git repository\n"
             )
             self.set_error(True)
         elif self.git_local_dir.is_dir():
             shutil.rmtree(str(self.git_local_dir))
-            self.add_output(self.indent_spaces +
-                            f"[INFO] Deleted: '{self.git_local_dir}'")
+            self.add_output(self.indent_spaces
+                            + f"[INFO] Deleted: '{self.git_local_dir}'")
             self.set_changed(True)
 
     def _repo_clone(self):
@@ -246,9 +246,9 @@ class BatchFetchGit(TaskBatchFetch):
             do_git_fetch = True
         elif not self["revision"]:
             do_git_fetch = True
-            self.add_output(self.indent_spaces +
-                            "[INFO] Git fetch origin reason: " +
-                            "No 'revision:' specified\n")
+            self.add_output(self.indent_spaces
+                            + "[INFO] Git fetch origin reason: "
+                            + "No 'revision:' specified\n")
         else:
             do_git_fetch = False
             commit_ref = None
@@ -264,10 +264,10 @@ class BatchFetchGit(TaskBatchFetch):
             if not commit_ref and not self.is_branch:
                 do_git_fetch = True
                 self.add_output(
-                    self.indent_spaces +
-                    "[INFO] Git fetch origin reason: " +
-                    f"The revision does not exist: {self['revision']}" +
-                    "\n")
+                    self.indent_spaces
+                    + "[INFO] Git fetch origin reason: "
+                    + f"The revision does not exist: {self['revision']}"
+                    + "\n")
 
             if not do_git_fetch:
                 try:
@@ -276,10 +276,10 @@ class BatchFetchGit(TaskBatchFetch):
                            f"refs/heads/{self['revision']}"]
                     run_simple(cmd, env=self.env, cwd=self.git_local_dir)
                     self.add_output(
-                        self.indent_spaces +
-                        "[INFO] Git fetch origin reason: " +
-                        f"{self['revision']} is a branch, not a tag" +
-                        "\n")
+                        self.indent_spaces
+                        + "[INFO] Git fetch origin reason: "
+                        + f"{self['revision']} is a branch, not a tag"
+                        + "\n")
                     do_git_fetch = True
                 except subprocess.CalledProcessError:
                     pass
@@ -302,8 +302,8 @@ class BatchFetchGit(TaskBatchFetch):
                 # Or the commit ref of HEAD hasn't changed
                 if not commit_ref_head or commit_ref_head != commit_ref:
                     self.add_output(
-                        self.indent_spaces +
-                        "[INFO] Git fetch origin reason: "
+                        self.indent_spaces
+                        + "[INFO] Git fetch origin reason: "
                         f"Commit ref head '{commit_ref_head}' != "
                         f"commit ref '{commit_ref_head}'"
                         "\n")
@@ -429,9 +429,9 @@ class BatchFetchGit(TaskBatchFetch):
             # branch is a commit revision instead of a tag
             try:
                 # Check if the branch exists
-                git_ref_branch = self._git_tags("origin/" +
-                                                self["revision"] +
-                                                "^{commit}")[0]
+                git_ref_branch = self._git_tags("origin/"
+                                                + self["revision"]
+                                                + "^{commit}")[0]
             except GitRevisionDoesNotExist:
                 # Check if the commit ref exists
                 try:
@@ -445,9 +445,9 @@ class BatchFetchGit(TaskBatchFetch):
                 # Update the branch
                 self._run(["git", "checkout"] + [self["revision"]],
                           cwd=str(self.git_local_dir), env=self.env)
-                self.add_output(self.indent_spaces +
-                                "[INFO] Branch changed to " +
-                                self["revision"] + "\n")
+                self.add_output(self.indent_spaces
+                                + "[INFO] Branch changed to "
+                                + self["revision"] + "\n")
                 self.set_changed(True)
                 branch_changed = True
 
@@ -503,8 +503,8 @@ class BatchFetchGit(TaskBatchFetch):
             if self.current_branch:
                 try:
                     self.add_output(
-                        self.indent_spaces +
-                        "[INFO] Git fetch origin reason: "
+                        self.indent_spaces
+                        + "[INFO] Git fetch origin reason: "
                         f"we need to set the upstream "
                         f"origin to {self.current_branch}"
                         "\n"
