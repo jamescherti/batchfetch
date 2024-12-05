@@ -463,22 +463,22 @@ class BatchFetchGit(TaskBatchFetch):
             self._run(cmd, cwd=str(self.git_local_dir), env=self.env)
             self._git_fetch_origin_done = True
 
-    def _repo_update_submodules(self):
-        # This parameter instructs Git to initiate the update
-        # process for submodules:
-        # 1. Git fetches the commits specified in the parent
-        # repository's configuration for each submodule.
-        # 2. Updates are based solely on the commit pointers stored
-        # within the parent repository's submodule configuration.
-        # 3. It does not directly consult the upstream repositories
-        # of the submodules.
-        # 4. Submodules are updated to reflect the exact commits
-        # revision in the parent repository's configuration,
-        # potentially lagging behind the latest changes made in the
-        # upstream repositories.
-        if self.git_local_dir.joinpath(".gitmodules").is_file():
-            cmd = ["git", "submodule", "update", "--recursive"]
-            self._run(cmd, cwd=str(self.git_local_dir), env=self.env)
+    # def _repo_update_submodules(self):
+    #     # This parameter instructs Git to initiate the update
+    #     # process for submodules:
+    #     # 1. Git fetches the commits specified in the parent
+    #     # repository's configuration for each submodule.
+    #     # 2. Updates are based solely on the commit pointers stored
+    #     # within the parent repository's submodule configuration.
+    #     # 3. It does not directly consult the upstream repositories
+    #     # of the submodules.
+    #     # 4. Submodules are updated to reflect the exact commits
+    #     # revision in the parent repository's configuration,
+    #     # potentially lagging behind the latest changes made in the
+    #     # upstream repositories.
+    #     if self.git_local_dir.joinpath(".gitmodules").is_file():
+    #         cmd = ["git", "submodule", "update", "--recursive"]
+    #         self._run(cmd, cwd=str(self.git_local_dir), env=self.env)
 
     def _repo_fix_remote_origin(self):
         correct_origin_url = self[self.main_key]
