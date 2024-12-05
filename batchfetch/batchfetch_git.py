@@ -149,8 +149,8 @@ class BatchFetchGit(TaskBatchFetch):
                 if git_fetch_done:
                     git_merge_done = self._git_merge()
 
-                if (git_fetch_done and git_merge_done) or git_branch_changed:
-                    self._repo_update_submodules()
+                # if (git_fetch_done and git_merge_done) or git_branch_changed:
+                #     self._repo_update_submodules()
 
                 if self.get_changed():
                     self._run_post_exec(cwd=self.git_local_dir)
