@@ -17,14 +17,9 @@ pip install --user batchfetch
 
 The pip command above installs the *batchfetch* executable in the `~/.local/bin/` directory. Omitting the `--user` flag will install it system-wide.
 
-## Features:
-- Git Clone and Fetch/Merge: Clones the repositories and their submodules, ensuring that all the repositories are always up-to-date by fetching and merging changes.
-- Parallel Operations: Utilizes threads to simultaneously Git clone or pull multiple repositories, dramatically reducing wait times.
-- User-Friendly Interface: Provides simple and straightforward command-line options that make it easy to get started and effectively manage your repositories.
-- Custom Configuration: Allows the use of a YAML configuration file to specify and manage the repositories you interact with, enabling repeatable setups and consistent environments.
-- Detect files that should not be present in directories managed by batchfetch, known as untracked files.
+## Usage
 
-## Example
+### Example of a `batchfetch.yaml` file
 
 Here is an example of a `batchfetch.yaml` file:
 
@@ -53,7 +48,7 @@ tasks:
 
 Execute the `batchfetch` command from the same directory as `batchfetch.yml` to make it clone or update the local copies of the repositories above.
 
-## Usage
+## Command-line options
 
 Here are the various options that `batchfetch` provides, along with descriptions of their usage:
 
@@ -69,6 +64,12 @@ options:
   -v, --verbose         Enable verbose mode.
 ```
 
+## Features:
+- Git Clone and Fetch/Merge: Clones the repositories and their submodules, ensuring that all the repositories are always up-to-date by fetching and merging changes.
+- Parallel Operations: Utilizes threads to simultaneously Git clone or pull multiple repositories, dramatically reducing wait times.
+- User-Friendly Interface: Provides simple and straightforward command-line options that make it easy to get started and effectively manage your repositories.
+- Custom Configuration: Allows the use of a YAML configuration file to specify and manage the repositories you interact with, enabling repeatable setups and consistent environments.
+- Detect files that should not be present in directories managed by batchfetch, known as untracked files.
 ## Frequently Asked Questions
 
 ### What are untracked files?
