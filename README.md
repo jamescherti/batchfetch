@@ -101,13 +101,11 @@ When "path:" is not specified, Batchfetch attempts to determine the path name by
 
 ### How does Batchfetch detect when a git fetch is necessary?
 
-Because is fast, not only because it runs Git commands in parallel, but also because it intelligently detects whether a `git fetch` is needed, further speeding up the process of downloading data from repositories.
+Batchfetch is fast, not only because it runs Git commands in parallel, but also because it intelligently detects whether a `git fetch` is needed, further speeding up the process of downloading data from repositories.
 
-When Batchfetch detects that the user has specified a revision (branch or commit reference), it only performs a `git fetch` if that revision or branch does not exist locally. If the revision is already up to date, it simply proceeds to the next repository in the queue.
+When the user has specifies a revision (branch or commit reference), Batchfetch only performs a `git fetch` if that revision does not exist locally. If the revision is already up to date, it simply proceeds to the next repository in the queue.
 
-That's why it is highly recommended to always specify the revision (branch or commit reference) to speed up Batchfetch, if speed is important to you.
-
-Here is an example of a `batchfetch.yaml` file where the branch (`1.1.0`) or commit reference (`b9c6d9b6134b4981760893254f804a371ffbc899`) is specified:
+That's why it is highly recommended to always specify the revision to speed up Batchfetch, if speed is important to you. Here is an example of a `batchfetch.yaml` file where the branch (`1.1.0`) or commit reference (`b9c6d9b6134b4981760893254f804a371ffbc899`) is specified:
 ``` yaml
 tasks:
   - git: https://github.com/jamescherti/outline-indent.el
