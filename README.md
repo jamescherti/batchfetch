@@ -2,9 +2,9 @@
 
 ## Introduction
 
-Batchfetch is a command-line tool designed to clone, fetch, and merge multiple Git repositories simultaneously.
+Batchfetch is a command-line tool designed to clone, fetch, and merge multiple Git repositories simultaneously. With Batchfetch, you no longer need to manually manage each repository one by one. It automates the tedious aspects of repository management, freeing you up to focus on what truly matters: your workflow.
 
-With Batchfetch, you no longer need to manually manage each repository one by one. It automates the tedious aspects of repository management, freeing you up to focus on what truly matters: your workflow.
+But why use batchfetch? Because it is extremely fast, cloning repositories quickly by running Git operations in parallel. It intelligently detects whether a `git fetch` is needed, further speeding up the process of downloading data from repositories. Additionally, it allows specifying the revision (for Git), ensuring that the cloned repository matches the exact version you require.
 
 Batchfetch is ideal for quickly cloning or pulling multiple Git repositories. It is also useful for cloning various addons, such as Vim plugins, Emacs packages, Ansible roles, Ansible collections, and other addons available on websites like GitHub, Codeberg, and GitLab.
 
@@ -13,6 +13,7 @@ Batchfetch is ideal for quickly cloning or pulling multiple Git repositories. It
 - Parallel Operations: Utilizes threads to simultaneously Git clone or pull multiple repositories, dramatically reducing wait times.
 - User-Friendly Interface: Provides simple and straightforward command-line options that make it easy to get started and effectively manage your repositories.
 - Custom Configuration: Allows the use of a YAML configuration file to specify and manage the repositories you interact with, enabling repeatable setups and consistent environments.
+- Detect files that should not be present in directories managed by batchfetch, known as untracked files.
 
 ## Installation
 
@@ -32,20 +33,20 @@ Here is an example of a `batchfetch.yaml` file:
 tasks:
   # Clone the default branch of the general.el repository to the
   # './general.el' directory
-  - git: https://github.com/noctuid/general.el
+  - git: https://github.com/jamescherti/compile-angel.el
 
   # Clone the tag 1.5 of the consult repository to the './consult'
   # directory
-  - git: https://github.com/minad/consult
-    revision: "1.5"
+  - git: https://github.com/jamescherti/outline-indent.el
+    revision: "1.1.0"
 
   # Clone the s.el repository to the './another-name.el' directory
-  - git: https://github.com/magnars/s.el
-    path: another-name.el
-    revision: dda84d38fffdaf0c9b12837b504b402af910d01d
+  - git: https://github.com/jamescherti/easysession.el
+    path: easysession
+    revision: b9c6d9b6134b4981760893254f804a371ffbc899
 
-  # Delete './impatient-mode'
-  - git: https://github.com/skeeto/impatient-mode
+  # Delete the local copy of the following repository
+  - git: https://github.com/jamescherti/dir-config.el
     delete: true
 ```
 
@@ -56,15 +57,13 @@ Execute the `batchfetch` command from the same directory as `batchfetch.yml` to 
 Here are the various options that `batchfetch` provides, along with descriptions of their usage:
 
 ```
-usage: batchfetch [--option] [args]
+usage: batchfetch [--option]
 
-Command line interface.
-
-positional arguments:
-  N                     Specify the batchfetch YAML file(s) (default: './batchfetch.yaml').
+Efficiently clone/pull multiple Git repositories in parallel.
 
 options:
   -h, --help            show this help message and exit
+  -f FILE, --file FILE  Specify the batchfetch YAML file (default: './batchfetch.yaml').
   -j JOBS, --jobs JOBS  Run up to N Number of parallel processes (Default: 5).
   -v, --verbose         Enable verbose mode.
 ```

@@ -269,7 +269,7 @@ class BatchFetchCli:
 
 def parse_args():
     """Parse the command line arguments."""
-    desc = __doc__
+    desc = "Efficiently clone/pull multiple Git repositories in parallel."
     usage = "%(prog)s [--option]"
     parser = argparse.ArgumentParser(description=desc, usage=usage)
 
