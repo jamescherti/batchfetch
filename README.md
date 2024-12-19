@@ -4,7 +4,7 @@
 
 Batchfetch is a command-line tool designed to clone, fetch, and merge multiple Git repositories simultaneously. With Batchfetch, you no longer need to manually manage each repository one by one. It automates the tedious aspects of repository management, freeing you up to focus on what truly matters: your workflow.
 
-But why use batchfetch? Because it is extremely fast, cloning repositories quickly by running Git operations in parallel. It intelligently detects whether a `git fetch` is needed, further speeding up the process of downloading data from repositories. Additionally, it allows specifying the revision (for Git), ensuring that the cloned repository matches the exact version you require.
+But why use Batchfetch? Because it is extremely fast, cloning repositories quickly by running Git operations in parallel. It intelligently detects whether a `git fetch` is needed, further speeding up the process of downloading data from repositories. Additionally, it allows specifying the revision (for Git), ensuring that the cloned repository matches the exact version you require.
 
 Batchfetch is ideal for quickly cloning or pulling multiple Git repositories. It is also useful for cloning various addons, such as Vim plugins, Emacs packages, Ansible roles, Ansible collections, and other addons available on websites like GitHub, Codeberg, and GitLab.
 
@@ -93,6 +93,20 @@ tasks:
 
 By default, *batchfetch.yaml* is the only untracked file that is ignored. The user does not need to add it to the *ignore_untracked_paths* option.
 
+### How is the Git local paths handled?
+
+When "path:" is specified, that's the path that is used.
+
+When "path:" is not specified, Batchfetch attempts to determine the path name by extracting the repository name from the URI (e.g., `https://domain.com/repo` becomes `repo`). If the URL ends with a `.git` extension, it removes the extension (e.g., `https://domain.com/repo.git` becomes `repo`).
+
+### How does Batchfetch detect when a git fetch is necessary?
+
+Because is fast, not only because it runs Git commands in parallel, but also because it intelligently detects whether a `git fetch` is needed, further speeding up the process of downloading data from repositories.
+
+When Batchfetch detects that the user has specified a revision (branch or commit reference), it only performs a `git fetch` if that revision or branch does not exist locally. If the revision is already up to date, it simply proceeds to the next repository in the queue.
+
+That's why it is highly recommended to always specify the revision (branch or commit reference) to speed up Batchfetch, if speed is important to you.
+
 ## License
 
 Copyright (C) 2024 [James Cherti](https://www.jamescherti.com)
@@ -102,6 +116,17 @@ This program is free software: you can redistribute it and/or modify it under th
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License along with this program.
+
+Here is an example of a `batchfetch.yaml` file where the branch (`1.1.0`) or commit reference (`b9c6d9b6134b4981760893254f804a371ffbc899`) is specified:
+``` yaml
+tasks:
+  - git: https://github.com/jamescherti/outline-indent.el
+    revision: "1.1.0"
+
+  - git: https://github.com/jamescherti/easysession.el
+    path: easysession
+    revision: b9c6d9b6134b4981760893254f804a371ffbc899
+```
 
 ## Links
 
