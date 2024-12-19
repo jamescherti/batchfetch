@@ -43,7 +43,8 @@ class BatchFetchCli:
     def __init__(self, max_workers: int, verbose: bool = False):
         self.cfg: dict = {}
         self.folder = Path(".")
-        self.managed_paths: Set[Path] = set()
+        self.tracked_paths: Dict[Path, Set[str]] = {}
+        self.ignore_untracked_paths: Set[Path] = set()
         self.verbose = verbose
         self.max_workers = max_workers
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -96,6 +97,22 @@ class BatchFetchCli:
                     print(f"Error: Invalid format: {yaml_dict}.",
                           file=sys.stderr)
                     sys.exit(1)
+
+                self.ignore_untracked_paths.add(Path(path).absolute())
+                self.ignore_untracked_paths.add(Path(path).resolve())
+                untracked_paths = None
+                if "options" in yaml_dict:
+                    untracked_paths = \
+                        yaml_dict["options"]["ignore_untracked_paths"]
+
+                if isinstance(untracked_paths, str):
+                    untracked_paths = [untracked_paths]
+
+                if untracked_paths:
+                    for ignore_untracked_path in untracked_paths:
+                        self.ignore_untracked_paths.add(
+                            Path(ignore_untracked_path).absolute()
+                        )
 
                 self._loads(dict(yaml_dict))
         except OSError as err:
@@ -154,7 +171,7 @@ class BatchFetchCli:
         error = False
         threads = []
         num_success = 0
-        self.managed_paths = set()
+        self.tracked_paths = {}
 
         executor_update = ThreadPoolExecutor(max_workers=self.max_workers)
 
@@ -165,7 +182,15 @@ class BatchFetchCli:
             for task in all_tasks:
                 self.dirs_relative_to_batchfetch.add(str(task["path"]))
                 if not task["delete"]:
-                    self.managed_paths.add(Path(task["path"]).absolute())
+                    full_path = Path(task["path"]).absolute()
+                    base_path = full_path.parent
+                    try:
+                        self.tracked_paths[base_path]
+                    except KeyError:
+                        self.tracked_paths[base_path] = set()
+
+                    self.tracked_paths[base_path].add(full_path.name)
+
                 threads.append(executor_update.submit(task.update))
 
             for future in as_completed(threads):
@@ -207,6 +232,8 @@ class BatchFetchCli:
 
             return False
         else:
+            self._find_untracked_paths()
+
             if num_success == 0:
                 print("Nothing to do.")
             elif not self.verbose:
@@ -214,11 +241,36 @@ class BatchFetchCli:
 
         return True
 
+    def _find_untracked_paths(self):
+        "Find the files that are untracked and should be deleted."
+        untracked_paths = set()
+        for tracked_dir, tracked_filenames in self.tracked_paths.items():
+            actual_filenames = {file.name for file in tracked_dir.iterdir()}
+            for filename in actual_filenames - tracked_filenames:
+                full_path = tracked_dir / filename
+                if full_path in self.ignore_untracked_paths:
+                    continue
+
+                untracked_paths.add(full_path)
+
+        if untracked_paths:
+            err_str = "The following files need to be deleted:\n"
+            for path in untracked_paths:
+                err_str += ("  - " +
+                            str(path) +
+                            ("/" if path.is_dir() else "") +
+                            "\n")
+            err_str += ("The paths above are not managed by batchfetch."
+                        " To retain them, add them to the "
+                        "options.ignore_untracked_paths list, using either "
+                        "relative or absolute paths")
+            raise BatchFetchError(err_str)
+
 
 def parse_args():
     """Parse the command line arguments."""
     desc = __doc__
-    usage = "%(prog)s [--option] [args]"
+    usage = "%(prog)s [--option]"
     parser = argparse.ArgumentParser(description=desc, usage=usage)
 
     parser.add_argument("-f",
@@ -255,8 +307,8 @@ def run_batchfetch_procedure(file: Path, args) -> int:
     errno = 0
     batchfetch_cli = BatchFetchCli(verbose=args.verbose,
                                    max_workers=int(args.jobs))
-    batchfetch_cli.load(file)
     os.chdir(file.parent)
+    batchfetch_cli.load(file)
 
     try:
         if not batchfetch_cli.run_tasks():

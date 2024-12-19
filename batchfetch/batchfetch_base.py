@@ -107,6 +107,7 @@ class TaskBatchFetch(TaskBase):
         self.global_options_schema: Dict[Any, Any] = {
             Optional("exec_before"): Or([str], str),
             Optional("exec_after"): Or([str], str),
+            Optional("ignore_untracked_paths"): Or([str], str),
         }
 
         self.task_schema: Dict[Any, Any] = {
@@ -120,6 +121,7 @@ class TaskBatchFetch(TaskBase):
         self.global_options_values: Dict[str, Any] = {
             "exec_before": [],
             "exec_after": [],
+            "ignore_untracked_paths": [],
         }
 
         self.task_default_values: Dict[str, Any] = {
