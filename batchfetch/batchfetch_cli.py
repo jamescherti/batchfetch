@@ -155,10 +155,12 @@ class BatchFetchCli:
                 print(f"Schema error: {err}.", file=sys.stderr)
                 sys.exit(1)
 
-            dest_path = Path(batchfetch_instance["path"]).resolve()
-            if str(dest_path) in dict_local_dir:
+            dest_path = Path(batchfetch_instance["path"]).absolute()
+            dest_path2 = Path(batchfetch_instance["path"]).resolve()
+            if str(dest_path) in dict_local_dir \
+                    or str(dest_path2) in dict_local_dir:
                 err_str = ("More than one task have the " +
-                           f"destination path '{dest_path}' (" +
+                           f"destination path (" +
                            str(task[keyword]) + " and " +
                            str(dict_local_dir[(str(dest_path))]) +
                            ")")
@@ -337,7 +339,7 @@ def command_line_interface():
         args = parse_args()
         done = []
         file = Path(args.file)
-        file_resolved = file.resolve()
+        file_resolved = file.absolute()
         if not file_resolved:
             print(f"Error: cannot resolve the path {file}",
                   file=sys.stderr)

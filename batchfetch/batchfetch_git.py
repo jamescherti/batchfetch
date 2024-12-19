@@ -93,9 +93,12 @@ class BatchFetchGit(TaskBatchFetch):
             self.values[self.main_key].rstrip("/")
 
         if "path" not in self.values:
-            self.values["path"] = \
-                posixpath.basename(
-                    self.values[self.main_key])  # type: ignore
+            path = \
+                posixpath.basename(self.values[self.main_key])  # type: ignore
+            # Remove .git from the file name
+            if path.endswith(".git"):
+                path = path[:-4]
+            self.values["path"] = path
 
     def update(self):
         """Clone or update a Git repository."""
@@ -120,7 +123,7 @@ class BatchFetchGit(TaskBatchFetch):
 
         self.add_output(f"[GIT {update_type}] {self[self.main_key]}"
                         + (f" (Ref: {self['revision']})"
-                         if self["revision"] else "") + "\n")
+                           if self["revision"] else "") + "\n")
 
         try:
             # Delete
