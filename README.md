@@ -107,16 +107,6 @@ When Batchfetch detects that the user has specified a revision (branch or commit
 
 That's why it is highly recommended to always specify the revision (branch or commit reference) to speed up Batchfetch, if speed is important to you.
 
-## License
-
-Copyright (C) 2024 [James Cherti](https://www.jamescherti.com)
-
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program.
-
 Here is an example of a `batchfetch.yaml` file where the branch (`1.1.0`) or commit reference (`b9c6d9b6134b4981760893254f804a371ffbc899`) is specified:
 ``` yaml
 tasks:
@@ -127,6 +117,16 @@ tasks:
     path: easysession
     revision: b9c6d9b6134b4981760893254f804a371ffbc899
 ```
+
+## License
+
+Copyright (C) 2024 [James Cherti](https://www.jamescherti.com)
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program.
 
 ## Links
 
