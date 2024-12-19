@@ -64,7 +64,7 @@ options:
   -v, --verbose         Enable verbose mode.
 ```
 
-## Features:
+## Features
 - Git Clone and Fetch/Merge: Clones the repositories and their submodules, ensuring that all the repositories are always up-to-date by fetching and merging changes.
 - Parallel Operations: Utilizes threads to simultaneously Git clone or pull multiple repositories, dramatically reducing wait times.
 - User-Friendly Interface: Provides simple and straightforward command-line options that make it easy to get started and effectively manage your repositories.
