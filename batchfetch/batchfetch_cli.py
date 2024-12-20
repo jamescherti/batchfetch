@@ -25,7 +25,7 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict, Set
+from typing import Any, Dict, Set, Union
 
 import colorama
 import yaml  # type: ignore
@@ -284,6 +284,16 @@ def parse_args():
                               "(default: './batchfetch.yaml')."))
 
     parser.add_argument(
+        "-C",
+        "--directory",
+        default=None,
+        required=False,
+        help=("Change the working directory before reading the "
+              "batchfetch.yaml file. If not specified, the directory is "
+              "set to the parent directory of the batchfetch.yaml file.")
+    )
+
+    parser.add_argument(
         "-j", "--jobs", default="5", required=False,
         help="Run up to N Number of parallel processes (Default: 5).",
     )
@@ -306,11 +316,13 @@ def parse_args():
     return args
 
 
-def run_batchfetch_procedure(file: Path, args) -> int:
+def run_batchfetch_procedure(file: Path,
+                             directory: Union[None, Path],
+                             verbose: bool,
+                             jobs: int) -> int:
     errno = 0
-    batchfetch_cli = BatchFetchCli(verbose=args.verbose,
-                                   max_workers=int(args.jobs))
-    os.chdir(file.parent)
+    batchfetch_cli = BatchFetchCli(verbose=verbose, max_workers=int(jobs))
+    os.chdir(directory if directory else file.parent)
     batchfetch_cli.load(file)
 
     try:
@@ -347,7 +359,10 @@ def command_line_interface():
             sys.exit(1)
 
         done.append(file_resolved)
-        errno |= run_batchfetch_procedure(file, args)
+        errno |= run_batchfetch_procedure(file=file,
+                                          directory=args.directory,
+                                          verbose=args.verbose,
+                                          jobs=int(args.jobs))
 
         sys.exit(errno)
     except BrokenPipeError:
