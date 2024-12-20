@@ -40,9 +40,10 @@ from .batchfetch_git import BatchFetchGit
 class BatchFetchCli:
     """Command-line-interface that downloads."""
 
-    def __init__(self, max_workers: int, verbose: bool = False):
+    def __init__(self, max_workers: int, verbose: bool, check_untracked: bool):
         self.cfg: dict = {}
         self.folder = Path(".")
+        self.check_untracked = check_untracked
         self.tracked_paths: Dict[Path, Set[str]] = {}
         self.ignore_untracked_paths: Set[Path] = set()
         self.verbose = verbose
@@ -235,7 +236,8 @@ class BatchFetchCli:
 
             return False
         else:
-            self._find_untracked_paths()
+            if self.check_untracked:
+                self._find_untracked_paths()
 
             if num_success == 0:
                 print("Nothing to do.")
@@ -272,6 +274,22 @@ class BatchFetchCli:
 
 def parse_args():
     """Parse the command line arguments."""
+    # Jobs
+    try:
+        jobs = os.environ["BATCHFETCH_JOBS"]
+        if jobs:
+            jobs = int(jobs)
+    except KeyError:
+        jobs = 5
+
+    # Check untracked
+    try:
+        check_untracked = os.environ["BATCHFETCH_CHECK_UNTRACKED"]
+        if check_untracked:
+            check_untracked = bool(int(check_untracked))
+    except KeyError:
+        check_untracked = False
+
     desc = "Efficiently clone/pull multiple Git repositories in parallel."
     usage = "%(prog)s [--option]"
     parser = argparse.ArgumentParser(description=desc, usage=usage)
@@ -296,7 +314,8 @@ def parse_args():
     parser.add_argument(
         "-j",
         "--jobs",
-        default="5",
+        default=jobs,
+        type=int,
         required=False,
         help=("Run up to N parallel processes (default: 5). "
               "Alternatively, the BATCHFETCH_JOBS environment variable can be "
@@ -306,6 +325,16 @@ def parse_args():
         "-v", "--verbose", action="store_true", default=False,
         help="Enable verbose mode.",
     )
+
+    parser.add_argument(
+        "-u",
+        "--check-untracked",
+        default=check_untracked,
+        action="store_true",
+        required=False,
+        help=("Abort if untracked files or directories exist. "
+              "Alternatively, set the BATCHFETCH_CHECK_UNTRACKED=1 "
+              "environment variable to enable this check."))
 
     args = parser.parse_args()
 
@@ -323,10 +352,13 @@ def parse_args():
 def run_batchfetch_procedure(file: Path,
                              directory: Union[None, Path],
                              verbose: bool,
-                             jobs: int) -> int:
+                             jobs: int,
+                             check_untracked: bool) -> int:
     errno = 0
-    batchfetch_cli = BatchFetchCli(verbose=verbose, max_workers=int(jobs))
-    os.chdir(directory if directory else file.parent)
+    batchfetch_cli = BatchFetchCli(verbose=verbose,
+                                   max_workers=int(jobs),
+                                   check_untracked=check_untracked)
+    os.chdir(directory)
     batchfetch_cli.load(file)
 
     try:
@@ -364,24 +396,19 @@ def command_line_interface():
 
         done.append(file_resolved)
 
-        try:
-            jobs = os.environ["BATCHFETCH_JOBS"]
-        except KeyError:
-            jobs = None
-
-        if jobs:
-            jobs = int(jobs)
-        else:
-            jobs = int(args.jobs)
-
-        if args.verbose and jobs:
-            print(f"[JOBS] {jobs}")
+        args.directory = args.directory if args.directory else file.parent
+        if args.verbose and args.jobs:
+            print(f"[FILE] {file}")
+            print(f"[DIR] {args.directory}")
+            print(f"[JOBS] {args.jobs}")
+            print(f"[CHECK UNTRACKED] {args.check_untracked}")
             print()
 
         errno |= run_batchfetch_procedure(file=file,
                                           directory=args.directory,
                                           verbose=args.verbose,
-                                          jobs=jobs)
+                                          jobs=args.jobs,
+                                          check_untracked=args.check_untracked)
 
         sys.exit(errno)
     except BrokenPipeError:
