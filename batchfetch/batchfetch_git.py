@@ -206,8 +206,8 @@ class BatchFetchGit(TaskBatchFetch):
                 # directly to a commit. You need to resolve it to the
                 # commit it points to. Using `git rev-parse
                 # <tagname>^{commit}` allows getting the right revision.
-                commit_ref = self._git_tags(self["revision"]
-                                            + "^{commit}")[0]
+                commit_ref = self._git_rev_parse_verify(self["revision"]
+                                                        + "^{commit}")[0]
                 self.branch_commit_ref = commit_ref.strip()
             except GitRevisionDoesNotExist:
                 pass
@@ -245,9 +245,7 @@ class BatchFetchGit(TaskBatchFetch):
     def _repo_fetch(self):
         # Merge
         do_git_fetch = self["git_pull"]
-        if self.is_branch:
-            do_git_fetch = True
-        elif not self["revision"]:
+        if not self["revision"]:
             do_git_fetch = True
             self.add_output(self.indent_spaces
                             + "[INFO] Git fetch origin reason: "
@@ -259,12 +257,9 @@ class BatchFetchGit(TaskBatchFetch):
             try:
                 # Check if the revision such as
                 # 0560fe21d1173b2221fd8c600fab818f7eecbad4 exist
-                commit_ref = self._git_tags(self["revision"])[0]
+                commit_ref = self._git_rev_parse_verify(self["revision"])[0]
                 commit_ref = commit_ref.strip()
             except GitRevisionDoesNotExist:
-                pass
-
-            if not commit_ref and not self.is_branch:
                 do_git_fetch = True
                 self.add_output(
                     self.indent_spaces
@@ -272,6 +267,7 @@ class BatchFetchGit(TaskBatchFetch):
                     + f"The revision does not exist: {self['revision']}"
                     + "\n")
 
+            # The revision exists, but if it a branch, git pull anyway
             if not do_git_fetch:
                 try:
                     # Check if the branch is a tag or a branch
@@ -286,31 +282,6 @@ class BatchFetchGit(TaskBatchFetch):
                     do_git_fetch = True
                 except subprocess.CalledProcessError:
                     pass
-
-            if not do_git_fetch and commit_ref:
-                # This is to check if a tag has been changed
-                try:
-                    # If the tag is annotated, it points to a tag object,
-                    # not directly to a commit. You need to resolve it to
-                    # the commit it points to. Using `git rev-parse
-                    # <tagname>^{commit}` allows getting the right
-                    # revision.
-                    commit_ref_head = self._git_tags("HEAD^{commit}")[0]
-                    commit_ref_head = commit_ref_head.strip()
-                except GitRevisionDoesNotExist:
-                    # HEAD is detached
-                    commit_ref_head = None
-
-                # The wanted commit revision does not exist
-                # Or the commit ref of HEAD hasn't changed
-                if not commit_ref_head or commit_ref_head != commit_ref:
-                    self.add_output(
-                        self.indent_spaces
-                        + "[INFO] Git fetch origin reason: "
-                        f"Commit ref head '{commit_ref_head}' != "
-                        f"commit ref '{commit_ref_head}'"
-                        "\n")
-                    do_git_fetch = True
 
         if not do_git_fetch:
             self.add_output(self.indent_spaces + "[INFO] git fetch ignored\n")
@@ -382,6 +353,7 @@ class BatchFetchGit(TaskBatchFetch):
         return origin_url
 
     def _git_is_local_branch(self, branch: str) -> bool:
+        "Return True if it is a local branch that exists."
         try:
             stdout, _ = run_simple(["git", "rev-parse", "--symbolic-full-name",
                                     branch], env=self.env,
@@ -398,11 +370,11 @@ class BatchFetchGit(TaskBatchFetch):
 
         return False
 
-    def _git_tags(self, branch: str) -> List[str]:
+    def _git_rev_parse_verify(self, revision: str) -> List[str]:
         stdout: List[str] = []
         error = False
         try:
-            stdout, _ = run_simple(["git", "rev-parse", "--verify", branch],
+            stdout, _ = run_simple(["git", "rev-parse", "--verify", revision],
                                    env=self.env,
                                    cwd=self.git_local_dir)
             if not stdout:
@@ -412,7 +384,7 @@ class BatchFetchGit(TaskBatchFetch):
 
         if error:
             raise GitRevisionDoesNotExist(
-                f"The revision '{branch}' does not exist.")
+                f"The revision '{revision}' does not exist.")
 
         return stdout
 
@@ -432,13 +404,14 @@ class BatchFetchGit(TaskBatchFetch):
             # branch is a commit revision instead of a tag
             try:
                 # Check if the branch exists
-                git_ref_branch = self._git_tags("origin/"
-                                                + self["revision"]
-                                                + "^{commit}")[0]
+                git_ref_branch = self._git_rev_parse_verify("origin/"
+                                                            + self["revision"]
+                                                            + "^{commit}")[0]
             except GitRevisionDoesNotExist:
                 # Check if the commit ref exists
                 try:
-                    git_ref_branch = self._git_tags(self["revision"])[0]
+                    git_ref_branch = self._git_rev_parse_verify(self["revision"])[
+                        0]
                 except GitRevisionDoesNotExist as err:
                     raise BatchFetchError(f"The branch '{self['revision']}' "
                                           "does not exist.") from err
