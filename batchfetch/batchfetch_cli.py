@@ -277,18 +277,19 @@ def parse_args():
     # Jobs
     try:
         jobs = os.environ["BATCHFETCH_JOBS"]
-        if jobs:
-            jobs = int(jobs)
     except KeyError:
         jobs = 5
+    else:
+        if jobs:
+            jobs = int(jobs)
 
     # Check untracked
     try:
         check_untracked = os.environ["BATCHFETCH_CHECK_UNTRACKED"]
-        if check_untracked:
-            check_untracked = bool(int(check_untracked))
     except KeyError:
         check_untracked = False
+    else:
+        check_untracked = bool(check_untracked)
 
     desc = "Efficiently clone/pull multiple Git repositories in parallel."
     usage = "%(prog)s [--option]"
