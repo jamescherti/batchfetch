@@ -112,7 +112,7 @@ def run_indent(cmd: Union[List[str], str], spaces: int = 4,
     cmd = shlex.split(cmd) if isinstance(cmd, str) else cmd
     stdout, stderr = run_simple(cmd=cmd, **kwargs)
     stdout = indent_raw_output([f"[RUN] {list2cmdline(cmd)}"], spaces) + \
-        indent_raw_output(stdout, spaces)
+        indent_raw_output(stdout, spaces + spaces)
     stderr = indent_raw_output(stderr, spaces)
 
     return (stdout, stderr)

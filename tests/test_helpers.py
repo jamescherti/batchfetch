@@ -50,7 +50,7 @@ def test_indent_raw_output():
 def test_run_indent():
     stdout_lines, stderr_lines = helpers.run_indent(str(SCRIPT_RUN_SIMPLE))
     assert stdout_lines == [f'    [RUN] {str(SCRIPT_RUN_SIMPLE)}',
-                            '    Test 1.',
-                            '    Test 2.',
-                            '    Test 3.']
+                            '        Test 1.',
+                            '        Test 2.',
+                            '        Test 3.']
     assert stderr_lines == ['    Test 3.']
