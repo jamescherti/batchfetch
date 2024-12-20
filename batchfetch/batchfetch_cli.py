@@ -101,7 +101,8 @@ class BatchFetchCli:
                 self.ignore_untracked_paths.add(Path(path).absolute())
                 self.ignore_untracked_paths.add(Path(path).resolve())
                 untracked_paths = None
-                if "options" in yaml_dict:
+                if "options" in yaml_dict and \
+                        "ignore_untracked_paths" in yaml_dict["options"]:
                     untracked_paths = \
                         yaml_dict["options"]["ignore_untracked_paths"]
 

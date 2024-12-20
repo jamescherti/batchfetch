@@ -70,6 +70,7 @@ options:
 - User-Friendly Interface: Provides simple and straightforward command-line options that make it easy to get started and effectively manage your repositories.
 - Custom Configuration: Allows the use of a YAML configuration file to specify and manage the repositories you interact with, enabling repeatable setups and consistent environments.
 - Detect files that should not be present in directories managed by batchfetch, known as untracked files.
+
 ## Frequently Asked Questions
 
 ### What are untracked files?
@@ -116,6 +117,20 @@ tasks:
   - git: https://github.com/jamescherti/easysession.el
     path: easysession
     revision: b9c6d9b6134b4981760893254f804a371ffbc899
+```
+
+### How to execute a command before and after a task?
+
+To execute a command both before and after a specific task, you can define the `exec_before` and `exec_after` directives within the task configuration. These directives specify commands to be executed at the respective stages of the task lifecycle.
+
+Here is an example:
+``` yaml
+---
+tasks:
+  - git: https://github.com/jamescherti/easysession.el
+    path: easysession
+    exec_before: ["sh", "-c", "echo exec_before_task"]
+    exec_after: ["sh", "-c", "echo exec_after_task"]
 ```
 
 ## License
