@@ -294,9 +294,13 @@ def parse_args():
     )
 
     parser.add_argument(
-        "-j", "--jobs", default="5", required=False,
-        help="Run up to N Number of parallel processes (Default: 5).",
-    )
+        "-j",
+        "--jobs",
+        default="5",
+        required=False,
+        help=("Run up to N parallel processes (default: 5). "
+              "Alternatively, the BATCHFETCH_JOBS environment variable can be "
+              "used to configure the number of jobs."))
 
     parser.add_argument(
         "-v", "--verbose", action="store_true", default=False,
@@ -359,10 +363,25 @@ def command_line_interface():
             sys.exit(1)
 
         done.append(file_resolved)
+
+        try:
+            jobs = os.environ["BATCHFETCH_JOBS"]
+        except KeyError:
+            jobs = None
+
+        if jobs:
+            jobs = int(jobs)
+        else:
+            jobs = int(args.jobs)
+
+        if args.verbose and jobs:
+            print(f"[JOBS] {jobs}")
+            print()
+
         errno |= run_batchfetch_procedure(file=file,
                                           directory=args.directory,
                                           verbose=args.verbose,
-                                          jobs=int(args.jobs))
+                                          jobs=jobs)
 
         sys.exit(errno)
     except BrokenPipeError:

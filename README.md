@@ -59,8 +59,15 @@ Efficiently clone/pull multiple Git repositories in parallel.
 
 options:
   -h, --help            show this help message and exit
-  -f FILE, --file FILE  Specify the batchfetch YAML file (default: './batchfetch.yaml').
-  -j JOBS, --jobs JOBS  Run up to N Number of parallel processes (Default: 5).
+  -f FILE, --file FILE  Specify the batchfetch YAML file (default:
+                        './batchfetch.yaml').
+  -C DIRECTORY, --directory DIRECTORY
+                        Change the working directory before reading the
+                        batchfetch.yaml file. If not specified, the directory is
+                        set to the parent directory of the batchfetch.yaml file.
+  -j JOBS, --jobs JOBS  Run up to N parallel processes (default: 5).
+                        Alternatively, the BATCHFETCH_JOBS environment variable
+                        can be used to configure the number of jobs.
   -v, --verbose         Enable verbose mode.
 ```
 
