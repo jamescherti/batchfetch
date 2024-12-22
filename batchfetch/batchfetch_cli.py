@@ -361,31 +361,6 @@ def parse_args():
     return args
 
 
-def run_batchfetch_procedure(file: Path,
-                             directory: Union[None, Path],
-                             verbose: bool,
-                             jobs: int,
-                             check_untracked: bool) -> int:
-    errno = 0
-    batchfetch_cli = BatchFetchCli(verbose=verbose,
-                                   max_workers=int(jobs),
-                                   check_untracked=check_untracked)
-    os.chdir(directory)
-    batchfetch_cli.load(file)
-
-    try:
-        if not batchfetch_cli.run_tasks():
-            errno = 1
-    except KeyboardInterrupt:
-        print("Interrupted.", file=sys.stderr)
-        errno = 1
-    except BatchFetchError as err:
-        print(f"Error: {err}.", file=sys.stderr)
-        errno = 1
-
-    return errno
-
-
 def command_line_interface():
     """Command line interface."""
     try:
