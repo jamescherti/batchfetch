@@ -43,7 +43,7 @@ class BatchFetchCli:
     def __init__(self, max_workers: int, verbose: bool, check_untracked: bool,
                  targets: List[str]):
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.targets = [Path(item).absolute() for item in targets]
+        self.targets = {Path(item).absolute() for item in targets}
         self.cfg: dict = {}
         self.check_untracked = check_untracked
         self.tracked_paths: Dict[Path, Set[str]] = {}
@@ -184,6 +184,26 @@ class BatchFetchCli:
             self.dirs_relative_to_batchfetch = set()
 
             all_tasks = self.cfg["tasks"]
+
+            # Check targets
+            if self.targets:
+                targets_executed = set()
+                for task in all_tasks:
+                    full_path = Path(task["path"]).absolute()
+                    if full_path not in self.targets:
+                        continue
+
+                    targets_executed.add(full_path)
+
+                targets_not_found = self.targets - targets_executed
+                if targets_not_found:
+                    err_str = \
+                        f"Error: Target(s) not found: "
+                    err_str += ", ".join([str(item)
+                                         for item in targets_not_found])
+                    print(f"Error: {err_str}", file=sys.stderr)
+                    sys.exit(1)
+
             for task in all_tasks:
                 full_path = Path(task["path"]).absolute()
 
