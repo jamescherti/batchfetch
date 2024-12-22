@@ -230,7 +230,7 @@ class BatchFetchGit(TaskBatchFetch):
 
     def _repo_clone(self):
         git_clone_args = self["git_clone_args"]
-        git_clone_args += ["--recurse-submodules"]
+        # git_clone_args += ["--recurse-submodules"]
 
         cmd = ["git", "clone"] + git_clone_args + \
             [self[self.main_key], str(self.git_local_dir)]
