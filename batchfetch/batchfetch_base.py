@@ -138,7 +138,7 @@ class TaskBatchFetch(TaskBase):
         # Mark values as initialized
         self._values_initialized = True
 
-    def _run(self, *args, **kwargs):
+    def _pre_run(self, *args, **kwargs):
         stdout = run_indent_str(*args, **kwargs)
 
         if not stdout.endswith("\n"):
@@ -151,7 +151,7 @@ class TaskBatchFetch(TaskBase):
         if self["delete"] or not cmd:
             return
 
-        self._run(cmd, cwd=str(cwd), env=self.env, spaces=self.indent)
+        self._pre_run(cmd, cwd=str(cwd), env=self.env, spaces=self.indent)
 
     def _run_post_exec(self, cwd: os.PathLike = Path(".")):
         self._initialize_data()
@@ -159,7 +159,7 @@ class TaskBatchFetch(TaskBase):
         if not cmd or self["delete"] or not self.is_changed():
             return
 
-        self._run(cmd, cwd=str(cwd), env=self.env, spaces=self.indent)
+        self._pre_run(cmd, cwd=str(cwd), env=self.env, spaces=self.indent)
 
     def is_changed(self) -> bool:
         self._initialize_data()

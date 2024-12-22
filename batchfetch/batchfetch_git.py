@@ -18,13 +18,13 @@
 #
 "Clone and update Git repositories."
 
-
+import os
 import posixpath
 import shutil
 import subprocess
 import textwrap
 from pathlib import Path
-from typing import List, Union
+from typing import List, Tuple, Union
 
 from schema import Optional
 
@@ -173,6 +173,24 @@ class BatchFetchGit(TaskBatchFetch):
 
         return self.values
 
+    def _run(self, cmd: Union[List[str], str],
+             cwd: Union[None, os.PathLike] = None,
+             env: Union[None, dict] = None,
+             **kwargs) -> Tuple[List[str], List[str]]:
+        """
+        Executes a command and returns stdout and stderr as separate lists of
+        strings.
+
+        :param cmd: Command to be executed. Can be a list or a string.
+        :param kwargs: Additional keyword arguments for Popen.
+        :return: Tuple containing two lists: stdout lines and stderr lines.
+        """
+        if not cwd:
+            cwd = self.git_local_dir
+        if not env:
+            env = self.env
+        return run_simple(cmd=cmd, env=env, cwd=cwd, **kwargs)
+
     def _git_ref(self, cwd: Union[None, Path] = None) -> str:
         """Get the commit revision of HEAD.
 
@@ -180,7 +198,7 @@ class BatchFetchGit(TaskBatchFetch):
         """
         cmd = ["git", "show-ref", "--head", "--verify", "HEAD"]
         try:
-            stdout, _ = run_simple(cmd, cwd=cwd, env=self.env)
+            stdout, _ = self._run(cmd, cwd=cwd)
             output = stdout[0].split(" ")[0]
         except IndexError:
             return ""
@@ -189,11 +207,7 @@ class BatchFetchGit(TaskBatchFetch):
     def _update_current_branch_name(self):
         try:
             # This returns the branch name
-            stdout, _ = run_simple(
-                ["git", "symbolic-ref", "--short", "HEAD"],
-                env=self.env,
-                cwd=self.git_local_dir,
-            )
+            stdout, _ = self._run(["git", "symbolic-ref", "--short", "HEAD"])
             self.current_branch = stdout[0]
             self.is_branch = True
         except (IndexError, subprocess.CalledProcessError):
@@ -234,13 +248,13 @@ class BatchFetchGit(TaskBatchFetch):
 
         cmd = ["git", "clone"] + git_clone_args + \
             [self[self.main_key], str(self.git_local_dir)]
-        self._run(cmd, env=self.env)
+        self._run(cmd, cwd=".")
         self.set_changed(True)
 
     def _repo_reset(self):
         # Remove local changes
         cmd = ["git", "reset", "--hard", "HEAD"]
-        self._run(cmd, cwd=str(self.git_local_dir), env=self.env)
+        self._run(cmd, cwd=".")
 
     def _repo_fetch(self):
         # Merge
@@ -256,10 +270,8 @@ class BatchFetchGit(TaskBatchFetch):
 
             try:
                 # Check if the revision such as
-                stdout, _ = run_simple(["git", "show-ref", "--verify",
-                                        self["revision"]],
-                                       env=self.env,
-                                       cwd=self.git_local_dir)
+                stdout, _ = self._run(["git", "cat-file", "-e",
+                                       self["revision"]])
             except subprocess.CalledProcessError:
                 do_git_fetch = True
                 self.add_output(
@@ -274,7 +286,7 @@ class BatchFetchGit(TaskBatchFetch):
                     # Check if the branch is a tag or a branch
                     cmd = ["git", "show-ref", "--verify", "--quiet",
                            f"refs/heads/{self['revision']}"]
-                    run_simple(cmd, env=self.env, cwd=self.git_local_dir)
+                    self._run(cmd)
                     self.add_output(
                         self.indent_spaces
                         + "[INFO] Git fetch origin reason: "
@@ -301,8 +313,7 @@ class BatchFetchGit(TaskBatchFetch):
             # TODO: only merge when difference from upstream
             commit_ref_head = self._git_ref(cwd=self.git_local_dir)
             self._run(["git", "merge", "--ff-only",
-                       f"origin/{self.current_branch}"],
-                      cwd=str(self.git_local_dir), env=self.env)
+                       f"origin/{self.current_branch}"])
             git_ref_after_merge = self._git_ref(cwd=self.git_local_dir)
             if commit_ref_head != git_ref_after_merge:
                 git_merge = True
@@ -310,19 +321,15 @@ class BatchFetchGit(TaskBatchFetch):
                 self._run(["git", "log",
                            '--pretty=format:"%h %ad %s [%cn]"',
                            "--decorate", "--date=short",
-                           f"{commit_ref_head}..{git_ref_after_merge}"],
-                          cwd=str(self.git_local_dir),
-                          env=self.env)
+                           f"{commit_ref_head}..{git_ref_after_merge}"])
 
         return git_merge
 
     def _git_get_remote_url(self, remote_name: str = "origin") -> str:
         origin_url = ""
         try:
-            stdout, _ = run_simple(["git", "config",
-                                    f"remote.{remote_name}.url"],
-                                   env=self.env,
-                                   cwd=self.git_local_dir)
+            stdout, _ = self._run(["git", "config",
+                                   f"remote.{remote_name}.url"])
             origin_url = stdout[0]
         except (subprocess.CalledProcessError, IndexError) as err:
             raise GitRemoteError(
@@ -334,18 +341,13 @@ class BatchFetchGit(TaskBatchFetch):
                             remote_name: str = "origin") -> str:
         origin_url = ""
         try:
-            run_simple(["git", "remote", "remove", remote_name],
-                       env=self.env, cwd=self.git_local_dir)
+            self._run(["git", "remote", "remove", remote_name])
         except subprocess.CalledProcessError:
             # Ignore when it cannot be removed when it does not exist
             pass
 
         try:
-            stdout, _ = run_simple(
-                ["git", "remote", "add", remote_name, url],
-                env=self.env,
-                cwd=self.git_local_dir,
-            )
+            stdout, _ = self._run(["git", "remote", "add", remote_name, url])
             origin_url = stdout[0]
         except (subprocess.CalledProcessError, IndexError) as err:
             raise GitRemoteError(
@@ -356,9 +358,8 @@ class BatchFetchGit(TaskBatchFetch):
     def _git_is_local_branch(self, branch: str) -> bool:
         "Return True if it is a local branch that exists."
         try:
-            stdout, _ = run_simple(["git", "rev-parse", "--symbolic-full-name",
-                                    branch], env=self.env,
-                                   cwd=self.git_local_dir)
+            stdout, _ = self._run(["git", "rev-parse", "--symbolic-full-name",
+                                   branch])
             if not stdout:
                 return False
 
@@ -375,9 +376,7 @@ class BatchFetchGit(TaskBatchFetch):
         stdout: List[str] = []
         error = False
         try:
-            stdout, _ = run_simple(["git", "rev-parse", "--verify", revision],
-                                   env=self.env,
-                                   cwd=self.git_local_dir)
+            stdout, _ = self._run(["git", "rev-parse", "--verify", revision])
             if not stdout:
                 error = True
         except subprocess.CalledProcessError:
@@ -395,11 +394,7 @@ class BatchFetchGit(TaskBatchFetch):
         if self["revision"]:
             # We also need tags because sometimes, a branch
             # returns a different commit revision
-            git_tags, _ = run_simple(
-                ["git", "tag", "--points-at", "HEAD"],
-                env=self.env,
-                cwd=self.git_local_dir,
-            )
+            git_tags, _ = self._run(["git", "tag", "--points-at", "HEAD"])
 
             # Also check the commit revision in case
             # branch is a commit revision instead of a tag
@@ -411,8 +406,8 @@ class BatchFetchGit(TaskBatchFetch):
             except GitRevisionDoesNotExist:
                 # Check if the commit ref exists
                 try:
-                    git_ref_branch = self._git_rev_parse_verify(self["revision"])[
-                        0]
+                    git_ref_branch = \
+                        self._git_rev_parse_verify(self["revision"])[0]
                 except GitRevisionDoesNotExist as err:
                     raise BatchFetchError(f"The branch '{self['revision']}' "
                                           "does not exist.") from err
@@ -420,8 +415,7 @@ class BatchFetchGit(TaskBatchFetch):
             if git_ref_after_merge != git_ref_branch and \
                     self["revision"] not in git_tags:
                 # Update the branch
-                self._run(["git", "checkout"] + [self["revision"]],
-                          cwd=str(self.git_local_dir), env=self.env)
+                self._run(["git", "checkout"] + [self["revision"]])
                 self.add_output(self.indent_spaces
                                 + "[INFO] Branch changed to "
                                 + self["revision"] + "\n")
@@ -437,25 +431,8 @@ class BatchFetchGit(TaskBatchFetch):
         # Fetch
         if not self._git_fetch_origin_done:
             cmd = ["git", "fetch", "origin"]
-            self._run(cmd, cwd=str(self.git_local_dir), env=self.env)
+            self._run(cmd)
             self._git_fetch_origin_done = True
-
-    # def _repo_update_submodules(self):
-    #     # This parameter instructs Git to initiate the update
-    #     # process for submodules:
-    #     # 1. Git fetches the commits specified in the parent
-    #     # repository's configuration for each submodule.
-    #     # 2. Updates are based solely on the commit pointers stored
-    #     # within the parent repository's submodule configuration.
-    #     # 3. It does not directly consult the upstream repositories
-    #     # of the submodules.
-    #     # 4. Submodules are updated to reflect the exact commits
-    #     # revision in the parent repository's configuration,
-    #     # potentially lagging behind the latest changes made in the
-    #     # upstream repositories.
-    #     if self.git_local_dir.joinpath(".gitmodules").is_file():
-    #         cmd = ["git", "submodule", "update", "--recursive"]
-    #         self._run(cmd, cwd=str(self.git_local_dir), env=self.env)
 
     def _repo_fix_remote_origin(self):
         correct_origin_url = self[self.main_key]
@@ -490,8 +467,7 @@ class BatchFetchGit(TaskBatchFetch):
 
                     cmd = ["git", "branch",
                            f"--set-upstream-to=origin/{self.current_branch}"]
-                    _, _ = run_simple(cmd, env=self.env,
-                                      cwd=self.git_local_dir)
+                    _, _ = self._run(cmd)
                     # TODO: handle errors
                 except subprocess.CalledProcessError as err:
                     raise BatchFetchError(str(err)) from err
