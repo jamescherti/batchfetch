@@ -410,4 +410,4 @@ def command_line_interface():
 
         sys.exit(errno)
     except BrokenPipeError:
-        pass
+        sys.exit(1)
