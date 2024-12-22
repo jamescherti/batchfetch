@@ -256,10 +256,11 @@ class BatchFetchGit(TaskBatchFetch):
 
             try:
                 # Check if the revision such as
-                # 0560fe21d1173b2221fd8c600fab818f7eecbad4 exist
-                commit_ref = self._git_rev_parse_verify(self["revision"])[0]
-                commit_ref = commit_ref.strip()
-            except GitRevisionDoesNotExist:
+                stdout, _ = run_simple(["git", "show-ref", "--verify",
+                                        self["revision"]],
+                                       env=self.env,
+                                       cwd=self.git_local_dir)
+            except subprocess.CalledProcessError:
                 do_git_fetch = True
                 self.add_output(
                     self.indent_spaces
