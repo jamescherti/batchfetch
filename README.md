@@ -53,9 +53,15 @@ Execute the `batchfetch` command from the same directory as `batchfetch.yml` to 
 Here are the various options that `batchfetch` provides, along with descriptions of their usage:
 
 ```
-usage: batchfetch [--option]
+usage: batchfetch [--option] [TARGET]
 
 Efficiently clone/pull multiple Git repositories in parallel.
+
+positional arguments:
+  target                This is a target path that batchfetch is supposed to
+                        handle. When no target is specified, execute the tasks
+                        of all target paths defined in the batchfetch.yml list
+                        of tasks.
 
 options:
   -h, --help            show this help message and exit
@@ -63,12 +69,17 @@ options:
                         './batchfetch.yaml').
   -C DIRECTORY, --directory DIRECTORY
                         Change the working directory before reading the
-                        batchfetch.yaml file. If not specified, the directory is
-                        set to the parent directory of the batchfetch.yaml file.
+                        batchfetch.yaml file. If not specified, the directory
+                        is set to the parent directory of the batchfetch.yaml
+                        file.
   -j JOBS, --jobs JOBS  Run up to N parallel processes (default: 5).
-                        Alternatively, the BATCHFETCH_JOBS environment variable
-                        can be used to configure the number of jobs.
+                        Alternatively, the BATCHFETCH_JOBS environment
+                        variable can be used to configure the number of jobs.
   -v, --verbose         Enable verbose mode.
+  -u, --check-untracked
+                        Abort if untracked files or directories exist.
+                        Alternatively, set the BATCHFETCH_CHECK_UNTRACKED=1
+                        environment variable to enable this check.
 ```
 
 ## Features
@@ -139,6 +150,31 @@ tasks:
     exec_before: ["sh", "-c", "echo exec_before_task"]
     exec_after: ["sh", "-c", "echo exec_after_task"]
 ```
+
+### How to make batchfetch handle only one path?
+
+To configure `batchfetch` to handle a specific path, you can define your tasks in a `batchfetch.yml` file and pass the desired path as an argument to the `batchfetch` command.
+
+#### Example `batchfetch.yml` file:
+
+In the following example, the `easysession` task clones two Git repositories:
+```yaml
+---
+tasks:
+  - git: https://github.com/jamescherti/easysession.el
+    path: easysession
+
+  - git: https://github.com/jamescherti/outline-indent.el
+    revision: "1.1.0"
+```
+
+To make `batchfetch` clone only `easysession`, pass its path as an argument:
+
+```bash
+batchfetch easysession
+```
+
+This will execute only the task corresponding to the `easysession` path, skipping all others in the `batchfetch.yml` file.
 
 ## License
 

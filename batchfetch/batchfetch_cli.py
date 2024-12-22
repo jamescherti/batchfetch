@@ -25,7 +25,7 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict, Set, Union
+from typing import Any, Dict, List, Set, Union
 
 import colorama
 import yaml  # type: ignore
@@ -40,15 +40,16 @@ from .batchfetch_git import BatchFetchGit
 class BatchFetchCli:
     """Command-line-interface that downloads."""
 
-    def __init__(self, max_workers: int, verbose: bool, check_untracked: bool):
+    def __init__(self, max_workers: int, verbose: bool, check_untracked: bool,
+                 targets: List[str]):
+        self._logger = logging.getLogger(self.__class__.__name__)
+        self.targets = [Path(item).absolute() for item in targets]
         self.cfg: dict = {}
-        self.folder = Path(".")
         self.check_untracked = check_untracked
         self.tracked_paths: Dict[Path, Set[str]] = {}
         self.ignore_untracked_paths: Set[Path] = set()
         self.verbose = verbose
         self.max_workers = max_workers
-        self._logger = logging.getLogger(self.__class__.__name__)
         self.dirs_relative_to_batchfetch: Set[str] = set()
 
         # Plugin
@@ -184,9 +185,10 @@ class BatchFetchCli:
 
             all_tasks = self.cfg["tasks"]
             for task in all_tasks:
+                full_path = Path(task["path"]).absolute()
+
                 self.dirs_relative_to_batchfetch.add(str(task["path"]))
                 if not task["delete"]:
-                    full_path = Path(task["path"]).absolute()
                     base_path = full_path.parent
                     try:
                         self.tracked_paths[base_path]
@@ -195,6 +197,8 @@ class BatchFetchCli:
 
                     self.tracked_paths[base_path].add(full_path.name)
 
+                if self.targets and full_path not in self.targets:
+                    continue
                 threads.append(executor_update.submit(task.update))
 
             for future in as_completed(threads):
@@ -292,8 +296,15 @@ def parse_args():
         check_untracked = bool(check_untracked)
 
     desc = "Efficiently clone/pull multiple Git repositories in parallel."
-    usage = "%(prog)s [--option]"
+    usage = "%(prog)s [--option] [TARGET]"
     parser = argparse.ArgumentParser(description=desc, usage=usage)
+
+    parser.add_argument(
+        "targets", metavar="target", type=str, nargs="*",
+        help=("This is a target path that batchfetch is supposed to handle. "
+              "When no target is specified, execute the tasks of all target "
+              "paths defined in the batchfetch.yml list of tasks."),
+    )
 
     parser.add_argument("-f",
                         "--file",
@@ -388,7 +399,7 @@ def command_line_interface():
 
         args = parse_args()
         done = []
-        file = Path(args.file)
+        file = Path(args.file).absolute()
         file_resolved = file.absolute()
         if not file_resolved:
             print(f"Error: cannot resolve the path {file}",
@@ -405,11 +416,22 @@ def command_line_interface():
             print(f"[CHECK UNTRACKED] {args.check_untracked}")
             print()
 
-        errno |= run_batchfetch_procedure(file=file,
-                                          directory=args.directory,
-                                          verbose=args.verbose,
-                                          jobs=args.jobs,
-                                          check_untracked=args.check_untracked)
+        os.chdir(args.directory)
+        batchfetch_cli = BatchFetchCli(verbose=args.verbose,
+                                       max_workers=args.jobs,
+                                       check_untracked=args.check_untracked,
+                                       targets=args.targets)
+        batchfetch_cli.load(file)
+
+        try:
+            if not batchfetch_cli.run_tasks():
+                errno = 1
+        except KeyboardInterrupt:
+            print("Interrupted.", file=sys.stderr)
+            errno = 1
+        except BatchFetchError as err:
+            print(f"Error: {err}.", file=sys.stderr)
+            errno = 1
 
         sys.exit(errno)
     except BrokenPipeError:
