@@ -268,8 +268,7 @@ class BatchFetchGit(TaskBatchFetch):
 
         try:
             # Check if the revision such as
-            stdout, _ = self._run(["git", "cat-file", "-e",
-                                   self["revision"]])
+            stdout, _ = self._run(["git", "cat-file", "-e", self["revision"]])
         except subprocess.CalledProcessError:
             do_git_fetch = True
             self.add_output(

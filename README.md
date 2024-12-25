@@ -176,6 +176,21 @@ batchfetch easysession
 
 This will execute only the task corresponding to the `easysession` path, skipping all others in the `batchfetch.yml` file.
 
+### How can I configure batchfetch to load a file other than batchfetch.yaml?
+
+You can specify the configuration file using the `-f` command-line option:
+
+```yaml
+batchfetch -f alternative-batchfetch.yaml
+```
+
+Alternatively, you can set the `BATCHFETCH_FILE` environment variable:
+
+```bash
+export BATCHFETCH_FILE=alternative-batchfetch.yaml
+batchfetch
+```
+
 ## License
 
 Copyright (C) 2024 [James Cherti](https://www.jamescherti.com)

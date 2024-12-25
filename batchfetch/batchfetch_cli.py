@@ -298,6 +298,12 @@ class BatchFetchCli:
 
 def parse_args():
     """Parse the command line arguments."""
+    # Batchfetch file
+    try:
+        batchfetch_file = os.environ["BATCHFETCH_FILE"]
+    except KeyError:
+        batchfetch_file = None
+
     # Jobs
     try:
         jobs = os.environ["BATCHFETCH_JOBS"]
@@ -326,12 +332,16 @@ def parse_args():
               "paths defined in the batchfetch.yml list of tasks."),
     )
 
-    parser.add_argument("-f",
-                        "--file",
-                        default=None,
-                        required=False,
-                        help=("Specify the batchfetch YAML file "
-                              "(default: './batchfetch.yaml')."))
+    parser.add_argument(
+        "-f",
+        "--file",
+        default=batchfetch_file,
+        required=False,
+        help=("Specify the batchfetch YAML file "
+              "(default: './batchfetch.yaml')."
+              "Alternatively, the BATCHFETCH_FILE environment variable can be "
+              "used to configure the number of jobs."),
+    )
 
     parser.add_argument(
         "-C",
