@@ -47,7 +47,7 @@ class BatchFetchCli:
         self.cfg: dict = {}
         self.check_untracked = check_untracked
         self.tracked_paths: Dict[Path, Set[str]] = {}
-        self.ignore_untracked_paths: Set[Path] = set()
+        self.ignore_untracked: Set[Path] = set()
         self.verbose = verbose
         self.max_workers = max_workers
         self.dirs_relative_to_batchfetch: Set[str] = set()
@@ -100,20 +100,20 @@ class BatchFetchCli:
                           file=sys.stderr)
                     sys.exit(1)
 
-                self.ignore_untracked_paths.add(Path(path).absolute())
-                self.ignore_untracked_paths.add(Path(path).resolve())
+                self.ignore_untracked.add(Path(path).absolute())
+                self.ignore_untracked.add(Path(path).resolve())
                 untracked_paths = None
                 if "options" in yaml_dict and \
-                        "ignore_untracked_paths" in yaml_dict["options"]:
+                        "ignore_untracked" in yaml_dict["options"]:
                     untracked_paths = \
-                        yaml_dict["options"]["ignore_untracked_paths"]
+                        yaml_dict["options"]["ignore_untracked"]
 
                 if isinstance(untracked_paths, str):
                     untracked_paths = [untracked_paths]
 
                 if untracked_paths:
                     for ignore_untracked_path in untracked_paths:
-                        self.ignore_untracked_paths.add(
+                        self.ignore_untracked.add(
                             Path(ignore_untracked_path).absolute()
                         )
 
@@ -277,7 +277,7 @@ class BatchFetchCli:
             actual_filenames = {file.name for file in tracked_dir.iterdir()}
             for filename in actual_filenames - tracked_filenames:
                 full_path = tracked_dir / filename
-                if full_path in self.ignore_untracked_paths:
+                if full_path in self.ignore_untracked:
                     continue
 
                 untracked_paths.add(full_path)
@@ -291,7 +291,7 @@ class BatchFetchCli:
                             "\n")
             err_str += ("The paths above are not managed by batchfetch."
                         " To retain them, add them to the "
-                        "options.ignore_untracked_paths list, using either "
+                        "options.ignore_untracked list, using either "
                         "relative or absolute paths")
             raise BatchFetchError(err_str)
 

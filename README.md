@@ -97,13 +97,13 @@ The parent directory of the "path:" value defines the managed directory, where t
 
 For example, if the "path:" value is `file/my-project`, the managed directory will be `file/`. Any file within `file/` that is not managed by batchfetch will be considered an untracked file.
 
-When *batchfetch* encounters an untracked file, it displays an error message to inform users about paths that are not managed by the system. The message provides clear instructions on how to handle these paths by adding them to the `options.ignore_untracked_paths` list, enabling users to manage untracked files effectively.
+When *batchfetch* encounters an untracked file, it displays an error message to inform users about paths that are not managed by the system. The message provides clear instructions on how to handle these paths by adding them to the `options.ignore_untracked` list, enabling users to manage untracked files effectively.
 
 Here is an example of a *batchfetch.yaml* file that enables *batchfetch* to accept a list of untracked files:
 
 ``` yaml
 options:
-  ignore_untracked_paths:
+  ignore_untracked:
     - ./test
     - /absolute/path
     - ../relative/path
@@ -112,7 +112,7 @@ tasks:
   - git: https://github.com/user/project
 ```
 
-By default, *batchfetch.yaml* is the only untracked file that is ignored. The user does not need to add it to the *ignore_untracked_paths* option.
+By default, *batchfetch.yaml* is the only untracked file that is ignored. The user does not need to add it to the *ignore_untracked* option.
 
 ### How is the Git local paths handled?
 
