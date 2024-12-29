@@ -138,28 +138,44 @@ class TaskBatchFetch(TaskBase):
         # Mark values as initialized
         self._values_initialized = True
 
-    def _pre_run(self, *args, **kwargs):
-        stdout = run_indent_str(*args, **kwargs)
-
+    def _local_task_exec(self, *args, **kwargs):
+        stdout = run_indent_str(env=self.env, spaces=self.indent,
+                                *args, **kwargs)
         if not stdout.endswith("\n"):
             stdout += "\n"
         self.add_output(stdout)
 
-    def _run_pre_exec(self, cwd: os.PathLike = Path(".")):
+    def _exec_before(self, cwd: os.PathLike = Path(".")):
         self._initialize_data()
+        if self["delete"]:
+            return
+
+        # Global
+        cmd = self.options["exec_before"] \
+            if "exec_before" in self.options else None
+        if cmd:
+            self._local_task_exec(cmd, cwd=str(cwd))
+
+        # Local
         cmd = self["exec_before"]
-        if self["delete"] or not cmd:
-            return
+        if cmd:
+            self._local_task_exec(cmd, cwd=str(cwd))
 
-        self._pre_run(cmd, cwd=str(cwd), env=self.env, spaces=self.indent)
-
-    def _run_post_exec(self, cwd: os.PathLike = Path(".")):
+    def _exec_after(self, cwd: os.PathLike = Path(".")):
         self._initialize_data()
-        cmd = self["exec_after"]
-        if not cmd or self["delete"] or not self.is_changed():
+        if self["delete"] or not self.is_changed():
             return
 
-        self._pre_run(cmd, cwd=str(cwd), env=self.env, spaces=self.indent)
+        # Local
+        cmd = self.options["exec_after"] \
+            if "exec_after" in self.options else None
+        if cmd:
+            self._local_task_exec(cmd, cwd=str(cwd))
+
+        # Local
+        cmd = self["exec_after"]
+        if cmd:
+            self._local_task_exec(cmd, cwd=str(cwd))
 
     def is_changed(self) -> bool:
         self._initialize_data()

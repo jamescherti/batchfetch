@@ -133,7 +133,7 @@ class BatchFetchGit(TaskBatchFetch):
                 # Pre exec
                 self._update_current_branch_name()
                 self._repo_fix_remote_origin()
-                self._run_pre_exec(cwd=self.git_local_dir)
+                self._exec_before(cwd=self.git_local_dir)
 
                 if not self["revision"]:
                     self.values["revision"] = self._run_get_firstline(
@@ -158,7 +158,7 @@ class BatchFetchGit(TaskBatchFetch):
                     git_merge_done = self._git_merge()
 
                 if self.get_changed():
-                    self._run_post_exec(cwd=self.git_local_dir)
+                    self._exec_after(cwd=self.git_local_dir)
         except BatchFetchError as err:
             self.set_error(True)
             self.add_output(self.indent_spaces + "[ERROR] " + str(err) + "\n")
