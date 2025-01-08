@@ -21,7 +21,7 @@
 import os
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from schema import Optional, Or, Schema
 
@@ -39,13 +39,12 @@ class DataAlreadyInitialized(Exception):
 class TaskBase:
     def __init__(self, data: Dict[str, Any], options: Dict[str, Any]):
         self.global_options_schema: Dict[Any, Any] = {}
-        self.global_options_values: Dict[str, Any] = {}
+        self.global_options_values: Dict[str, Any] = options
 
         self.task_schema: Dict[Any, Any] = {}
         self.task_default_values: Dict[str, Any] = {}
 
         self._item_values = data
-        self._item_options = options
 
         # Variables
         self.values: Dict[str, Any] = {}
@@ -59,13 +58,14 @@ class TaskBase:
         # Options
         self.options = {}
         self.options.update(deepcopy(self.global_options_values))
-        self.options.update(deepcopy(self._item_options))
+
         schema = Schema(self.global_options_schema)
         schema.validate(self.options)
 
         # Data
         self.values = {}
         self.values.update(deepcopy(self.task_default_values))
+        self.values.update(deepcopy(self.options))
         self.values.update(deepcopy(self._item_values))
         schema = Schema(self.task_schema)
         schema.validate(self.values)
@@ -98,6 +98,12 @@ class TaskBatchFetch(TaskBase):
     """Plugin downloader base class."""
 
     def __init__(self, data: Dict[str, Any], options: Dict[str, Any]):
+        new_options = {"exec_before": [],
+                       "exec_after": [],
+                       "ignore_untracked": []}
+        new_options.update(options)
+        options = new_options
+
         super().__init__(data=data, options=options)
         self.indent = 4
         self.indent_spaces = " " * self.indent
@@ -116,12 +122,9 @@ class TaskBatchFetch(TaskBase):
 
             Optional("exec_before"): Or([str], str),
             Optional("exec_after"): Or([str], str),
-        }
 
-        self.global_options_values: Dict[str, Any] = {
-            "exec_before": [],
-            "exec_after": [],
-            "ignore_untracked": [],
+            # Global options (unused locally)
+            Optional("ignore_untracked"): Or([str], str),
         }
 
         self.task_default_values: Dict[str, Any] = {
@@ -151,8 +154,8 @@ class TaskBatchFetch(TaskBase):
             return
 
         # Global
-        cmd = self.options["exec_before"] \
-            if "exec_before" in self.options else None
+        cmd = self.global_options_values["exec_before"] \
+            if "exec_before" in self.global_options_values else None
         if cmd:
             self._local_task_exec(cmd, cwd=str(cwd))
 
@@ -167,8 +170,8 @@ class TaskBatchFetch(TaskBase):
             return
 
         # Local
-        cmd = self.options["exec_after"] \
-            if "exec_after" in self.options else None
+        cmd = self.global_options_values["exec_after"] \
+            if "exec_after" in self.global_options_values else None
         if cmd:
             self._local_task_exec(cmd, cwd=str(cwd))
 
