@@ -88,9 +88,6 @@ class TaskBase:
         if key in self.options:
             return self.options[key]
 
-        if key in self.global_options_values:
-            return self.global_options_values[key]
-
         raise KeyError(f"The item '{key}' was not found in '{self.values}")
 
 
@@ -98,9 +95,9 @@ class TaskBatchFetch(TaskBase):
     """Plugin downloader base class."""
 
     def __init__(self, data: Dict[str, Any], options: Dict[str, Any]):
-        new_options = {"exec_before": [],
-                       "exec_after": [],
-                       "ignore_untracked": []}
+        new_options: Dict[str, Any] = {"exec_before": [],
+                                       "exec_after": [],
+                                       "ignore_untracked": []}
         new_options.update(options)
         options = new_options
 
@@ -160,7 +157,8 @@ class TaskBatchFetch(TaskBase):
             self._local_task_exec(cmd, cwd=str(cwd))
 
         # Local
-        cmd = self["exec_before"]
+        cmd = self._item_values["exec_before"] if "exec_before" \
+            in self._item_values else None
         if cmd:
             self._local_task_exec(cmd, cwd=str(cwd))
 
@@ -176,7 +174,8 @@ class TaskBatchFetch(TaskBase):
             self._local_task_exec(cmd, cwd=str(cwd))
 
         # Local
-        cmd = self["exec_after"]
+        cmd = self._item_values["exec_after"] if "exec_after" \
+            in self._item_values else None
         if cmd:
             self._local_task_exec(cmd, cwd=str(cwd))
 
