@@ -21,8 +21,9 @@
 import hashlib
 import os
 import shlex
+from pathlib import Path
 from subprocess import PIPE, CalledProcessError, Popen, list2cmdline
-from typing import List, Tuple, Union
+from typing import List, Set, Tuple, Union
 
 
 def md5sum(filename: os.PathLike):
@@ -116,3 +117,25 @@ def run_indent(cmd: Union[List[str], str], spaces: int = 4,
     stderr = indent_raw_output(stderr, spaces)
 
     return (stdout, stderr)
+
+
+def collect_parent_dirs(base_dir: Path, dir: Path) -> Set[Path]:
+    """Collect all parent directories of 'dir' until 'base_dir' is reached.
+
+    If 'dir' is not inside 'base_dir', return None.
+    """
+    parents: Set[Path] = set()
+
+    for dir_path, base_path in [(dir.resolve(), base_dir.resolve()),
+                                (dir.absolute(), base_dir.absolute())]:
+        try:
+            # Check if dir is inside base_dir
+            dir_path.relative_to(base_path)
+        except ValueError:
+            continue
+
+        while dir_path != base_path:
+            parents.add(dir_path)
+            dir_path = dir_path.parent
+
+    return parents

@@ -35,6 +35,7 @@ from setproctitle import setproctitle
 
 from .batchfetch_base import BatchFetchError, TaskBatchFetch
 from .batchfetch_git import BatchFetchGit
+from .helpers import collect_parent_dirs
 
 
 class BatchFetchCli:
@@ -100,8 +101,14 @@ class BatchFetchCli:
                           file=sys.stderr)
                     sys.exit(1)
 
-                self.ignore_untracked.add(Path(path).absolute())
-                self.ignore_untracked.add(Path(path).resolve())
+                # The Batchfetch file shouldn't be tracked
+                absolute_batchfetch = Path(path).absolute()
+                self.ignore_untracked.add(absolute_batchfetch)
+
+                resolved_batchfetch = absolute_batchfetch.resolve()
+                self.ignore_untracked.add(resolved_batchfetch)
+
+                # Paths specified in the batchfetch.yaml file
                 untracked_paths = None
                 if "options" in yaml_dict and \
                         "ignore_untracked" in yaml_dict["options"]:
@@ -113,9 +120,14 @@ class BatchFetchCli:
 
                 if untracked_paths:
                     for ignore_untracked_path in untracked_paths:
-                        self.ignore_untracked.add(
+                        # Absolute
+                        ignore_untracked_path = \
                             Path(ignore_untracked_path).absolute()
-                        )
+                        self.ignore_untracked.add(ignore_untracked_path)
+
+                        # Resolve
+                        ignore_untracked_path = ignore_untracked_path.resolve()
+                        self.ignore_untracked.add(ignore_untracked_path)
 
                 self._loads(dict(yaml_dict))
         except OSError as err:
@@ -273,10 +285,22 @@ class BatchFetchCli:
     def _find_untracked_paths(self):
         "Find the files that are untracked and should be deleted."
         untracked_paths = set()
+        cwd = Path.cwd()
+        local_ignore_untracked = set()
+
+        for tracked_dir, tracked_filenames in self.tracked_paths.items():
+            actual_filenames = {file.name for file in tracked_dir.iterdir()}
+            self.ignore_untracked |= {tracked_dir}
+            parents = collect_parent_dirs(cwd, tracked_dir)
+            local_ignore_untracked |= parents
+
         for tracked_dir, tracked_filenames in self.tracked_paths.items():
             actual_filenames = {file.name for file in tracked_dir.iterdir()}
             for filename in actual_filenames - tracked_filenames:
                 full_path = tracked_dir / filename
+                if full_path in local_ignore_untracked:
+                    continue
+
                 if full_path in self.ignore_untracked:
                     continue
 
