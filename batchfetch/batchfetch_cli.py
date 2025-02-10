@@ -446,19 +446,21 @@ def command_line_interface():
             print()
 
         os.chdir(args.directory)
-        batchfetch_cli = BatchFetchCli(verbose=args.verbose,
-                                       max_workers=args.jobs,
-                                       check_untracked=args.check_untracked,
-                                       targets=args.targets)
-        batchfetch_cli.load(file)
-
         try:
+            batchfetch_cli = BatchFetchCli(
+                verbose=args.verbose,
+                max_workers=args.jobs,
+                check_untracked=args.check_untracked,
+                targets=args.targets,
+            )
+
+            batchfetch_cli.load(file)
             if not batchfetch_cli.run_tasks():
                 errno = 1
         except KeyboardInterrupt:
             print("Interrupted.", file=sys.stderr)
             errno = 1
-        except BatchFetchError as err:
+        except (yaml.parser.MarkedYAMLError, BatchFetchError) as err:
             print(f"Error: {err}.", file=sys.stderr)
             errno = 1
 
