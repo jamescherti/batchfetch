@@ -130,8 +130,12 @@ class BatchFetchGit(TaskBatchFetch):
 
             # Update
             if self.git_local_dir.is_dir():
+                do_git_fetch = self["git_pull"]
+
                 # Pre exec
-                self._update_current_branch_name()
+                if do_git_fetch:
+                    self._update_current_branch_name()
+
                 self._repo_fix_remote_origin()
                 self._exec_before(cwd=self.git_local_dir)
 
@@ -148,10 +152,13 @@ class BatchFetchGit(TaskBatchFetch):
                                     f"[INFO] Update revision to: '" +
                                     self["revision"] + "'\n")
 
-                git_fetch_done = self._repo_fetch()
+                if do_git_fetch:
+                    git_fetch_done = self._repo_fetch()
 
                 git_branch_changed = False
-                git_branch_changed = self._repo_fix_branch()
+
+                if do_git_fetch:
+                    git_branch_changed = self._repo_fix_branch()
 
                 git_merge_done = False
                 if git_fetch_done:
