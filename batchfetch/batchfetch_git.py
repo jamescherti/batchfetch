@@ -141,8 +141,7 @@ class BatchFetchGit(TaskBatchFetch):
 
                 if not self["revision"]:
                     self.values["revision"] = self._run_get_firstline(
-                        "git symbolic-ref refs/remotes/origin/HEAD"
-                    ).split("/")[-1]
+                        "git symbolic-ref --short HEAD")
                     if not self["revision"]:
                         raise BatchFetchError(
                             "Unable to determine the default origin branch"
