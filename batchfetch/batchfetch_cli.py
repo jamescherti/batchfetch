@@ -111,6 +111,7 @@ class BatchFetchCli:
                 # Paths specified in the batchfetch.yaml file
                 untracked_paths = None
                 if "options" in yaml_dict and \
+                        isinstance(yaml_dict["options"], dict) and \
                         "ignore_untracked" in yaml_dict["options"]:
                     untracked_paths = \
                         yaml_dict["options"]["ignore_untracked"]
