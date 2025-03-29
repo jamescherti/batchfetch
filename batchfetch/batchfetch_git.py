@@ -117,7 +117,7 @@ class BatchFetchGit(TaskBatchFetch):
 
         self.add_output(f"[GIT {update_type}] {self[self.main_key]}"
                         + (f" (Ref: {self['revision']})"
-                           if self["revision"] else "") + "\n")
+                         if self["revision"] else "") + "\n")
 
         try:
             # Delete
@@ -148,20 +148,16 @@ class BatchFetchGit(TaskBatchFetch):
                         )
 
                     self.add_output(self.indent_spaces +
-                                    f"[INFO] Update revision to: '" +
+                                    "[INFO] Update revision to: '" +
                                     self["revision"] + "'\n")
 
                 if do_git_fetch:
                     git_fetch_done = self._repo_fetch()
 
-                git_branch_changed = False
+                self._repo_fix_branch()
 
-                if do_git_fetch:
-                    git_branch_changed = self._repo_fix_branch()
-
-                git_merge_done = False
                 if git_fetch_done:
-                    git_merge_done = self._git_merge()
+                    self._git_merge()
 
                 if self.get_changed():
                     self._exec_after(cwd=self.git_local_dir)
@@ -198,6 +194,8 @@ class BatchFetchGit(TaskBatchFetch):
 
         :param cmd: Command to be executed. Can be a list or a string.
         :param kwargs: Additional keyword arguments for Popen.
+        :cwd: Current working directory.
+        :env: Environment variables.
         :return: Tuple containing two lists: stdout lines and stderr lines.
         """
         if not cwd:
@@ -270,11 +268,10 @@ class BatchFetchGit(TaskBatchFetch):
         # Merge
         do_git_fetch = self["git_pull"]
         do_git_fetch = False
-        commit_ref = None
 
         try:
             # Check if the revision such as
-            stdout, _ = self._run(["git", "cat-file", "-e", self["revision"]])
+            _, _ = self._run(["git", "cat-file", "-e", self["revision"]])
         except subprocess.CalledProcessError:
             do_git_fetch = True
             self.add_output(
