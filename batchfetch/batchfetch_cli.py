@@ -42,7 +42,9 @@ class BatchFetchCli:
     """Command-line-interface that downloads."""
 
     def __init__(self, max_workers: int, verbose: bool, check_untracked: bool,
-                 targets: List[str]):
+                 targets: List[str], cwd: os.PathLike):
+        os.chdir(cwd)
+        self._cwd = cwd
         self._logger = logging.getLogger(self.__class__.__name__)
         self.targets = {Path(item).absolute() for item in targets}
         self.cfg: dict = {}
@@ -176,10 +178,7 @@ class BatchFetchCli:
             if str(dest_path) in dict_local_dir \
                     or str(dest_path2) in dict_local_dir:
                 err_str = ("More than one task have the " +
-                           f"destination path (" +
-                           str(task[keyword]) + " and " +
-                           str(dict_local_dir[(str(dest_path))]) +
-                           ")")
+                           f"destination path: {dest_path2}")
                 raise BatchFetchError(err_str)
 
             dict_local_dir[str(dest_path)] = batchfetch_instance[keyword]
@@ -311,8 +310,8 @@ class BatchFetchCli:
             err_str = "The following files need to be deleted:\n"
             for path in untracked_paths:
                 err_str += ("  - " +
-                            str(path) +
-                            ("/" if path.is_dir() else "") +
+                            str(path.relative_to(self._cwd)) +
+                            (os.sep if path.is_dir() else "") +
                             "\n")
             err_str += ("The paths above are not managed by batchfetch."
                         " To retain them, add them to the "
@@ -428,9 +427,10 @@ def command_line_interface():
                                              sys.argv[1:]))
 
         args = parse_args()
-        file = Path(args.file).absolute()
+        file = Path(args.file)
+        file_abs = file.absolute()
 
-        args.directory = args.directory if args.directory else file.parent
+        args.directory = args.directory if args.directory else file_abs.parent
         if args.verbose and args.jobs:
             print(f"[FILE] {file}")
             print(f"[DIR] {args.directory}")
@@ -438,13 +438,13 @@ def command_line_interface():
             print(f"[CHECK UNTRACKED] {args.check_untracked}")
             print()
 
-        os.chdir(args.directory)
         try:
             batchfetch_cli = BatchFetchCli(
                 verbose=args.verbose,
                 max_workers=args.jobs,
                 check_untracked=args.check_untracked,
                 targets=args.targets,
+                cwd=args.directory,
             )
 
             batchfetch_cli.load(file)
