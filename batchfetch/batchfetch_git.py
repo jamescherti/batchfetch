@@ -62,17 +62,20 @@ class BatchFetchGit(TaskBatchFetch):
 
             # Same as global options
             Optional("git_clone_args"): [str],
+            Optional("git_merge_args"): [str],
             Optional("git_pull"): bool,
         })
 
         self.global_options_schema.update({
             # Global options
             Optional("git_clone_args"): [str],
+            Optional("git_merge_args"): [str],
             Optional("git_pull"): bool,
         })
 
         # Data
         self.global_options_values.update({"git_clone_args": [],
+                                           "git_merge_args": [],
                                            "git_pull": True})
 
         self.task_default_values.update({
@@ -117,7 +120,7 @@ class BatchFetchGit(TaskBatchFetch):
 
         self.add_output(f"[GIT {update_type}] {self[self.main_key]}"
                         + (f" (Ref: {self['revision']})"
-                         if self["revision"] else "") + "\n")
+                           if self["revision"] else "") + "\n")
 
         try:
             # Delete
@@ -312,8 +315,8 @@ class BatchFetchGit(TaskBatchFetch):
         if real_branch and self.current_branch:
             # TODO: only merge when difference from upstream
             commit_ref_head = self._git_ref(cwd=self.git_local_dir)
-            self._run(["git", "merge", "--ff-only",
-                       f"origin/{self.current_branch}"])
+            self._run(["git", "merge"] + self["git_merge_args"] +
+                      [f"origin/{self.current_branch}"])
             git_ref_after_merge = self._git_ref(cwd=self.git_local_dir)
             if commit_ref_head != git_ref_after_merge:
                 git_merge = True
