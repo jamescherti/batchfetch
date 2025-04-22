@@ -26,7 +26,7 @@ import textwrap
 from pathlib import Path
 from typing import List, Tuple, Union
 
-from schema import Optional
+from schema import Optional, Or
 
 from .batchfetch_base import BatchFetchError, TaskBatchFetch
 from .helpers import run_simple
@@ -63,6 +63,7 @@ class BatchFetchGit(TaskBatchFetch):
             # Same as global options
             Optional("git_clone_args"): [str],
             Optional("git_merge_args"): [str],
+            Optional("git_merge_strategy"): Or("reset", "merge"),
             Optional("git_pull"): bool,
         })
 
@@ -70,12 +71,14 @@ class BatchFetchGit(TaskBatchFetch):
             # Global options
             Optional("git_clone_args"): [str],
             Optional("git_merge_args"): [str],
+            Optional("git_merge_strategy"): Or("reset", "merge"),
             Optional("git_pull"): bool,
         })
 
         # Data
         self.global_options_values.update({"git_clone_args": [],
-                                           "git_merge_args": [],
+                                           "git_merge_args": ["--ff-only"],
+                                           "git_merge_strategy": "merge",
                                            "git_pull": True})
 
         self.task_default_values.update({
@@ -159,8 +162,14 @@ class BatchFetchGit(TaskBatchFetch):
 
                 self._repo_fix_branch()
 
-                if git_fetch_done:
+                if True or git_fetch_done:
                     self._git_merge()
+                else:
+                    self.add_output(
+                        self.indent_spaces
+                        + "[INFO] Git merge ignored: "
+                        + "Nothing has been fetched"
+                        + "\n")
 
                 if self.get_changed():
                     self._exec_after(cwd=self.git_local_dir)
@@ -315,8 +324,15 @@ class BatchFetchGit(TaskBatchFetch):
         if real_branch and self.current_branch:
             # TODO: only merge when difference from upstream
             commit_ref_head = self._git_ref(cwd=self.git_local_dir)
-            self._run(["git", "merge"] + self["git_merge_args"] +
-                      [f"origin/{self.current_branch}"])
+
+            git_merge_strategy = self["git_merge_strategy"]
+            if git_merge_strategy == "merge":
+                self._run(["git", "merge"] + self["git_merge_args"] +
+                          [f"origin/{self.current_branch}"])
+            elif git_merge_strategy == "reset":
+                self._run(["git", "reset", "--hard",
+                          f"origin/{self.current_branch}"])
+
             git_ref_after_merge = self._git_ref(cwd=self.git_local_dir)
             if commit_ref_head != git_ref_after_merge:
                 git_merge = True
@@ -326,6 +342,13 @@ class BatchFetchGit(TaskBatchFetch):
                            "--decorate", "--date=short",
                            f"{commit_ref_head}..{git_ref_after_merge}"])
 
+            return git_merge
+
+        self.add_output(
+            self.indent_spaces
+            + "[INFO] Git merge ignored: "
+            + f"{self['revision']} is not a local branch"
+            + "\n")
         return git_merge
 
     def _git_get_remote_url(self, remote_name: str = "origin") -> str:
