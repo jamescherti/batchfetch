@@ -428,15 +428,7 @@ def command_line_interface():
                                              sys.argv[1:]))
 
         args = parse_args()
-        done = []
         file = Path(args.file).absolute()
-        file_resolved = file.absolute()
-        if not file_resolved:
-            print(f"Error: cannot resolve the path {file}",
-                  file=sys.stderr)
-            sys.exit(1)
-
-        done.append(file_resolved)
 
         args.directory = args.directory if args.directory else file.parent
         if args.verbose and args.jobs:
