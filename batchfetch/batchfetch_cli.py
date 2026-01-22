@@ -25,7 +25,7 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict, List, Set, Union
+from typing import Any, Dict, List, Set
 
 import colorama
 import yaml  # type: ignore
@@ -209,8 +209,7 @@ class BatchFetchCli:
 
                 targets_not_found = self.targets - targets_executed
                 if targets_not_found:
-                    err_str = \
-                        f"Error: Target(s) not found: "
+                    err_str = "Error: Target(s) not found: "
                     err_str += ", ".join([str(item)
                                          for item in targets_not_found])
                     print(f"Error: {err_str}", file=sys.stderr)

@@ -21,7 +21,7 @@
 import os
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from schema import Optional, Or, Schema
 
