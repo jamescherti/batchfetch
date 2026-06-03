@@ -60,6 +60,7 @@ class BatchFetchGit(TaskBatchFetch):
             # Local options
             self.main_key: str,
             Optional("revision"): str,
+            Optional("remote"): {Optional(str): str},
 
             # Same as global options
             Optional("git_clone_args"): [str],
@@ -85,6 +86,7 @@ class BatchFetchGit(TaskBatchFetch):
             self.main_key: "",
             "revision": "",
             "delete": False,
+            "remote": {},
         })
 
         self.git_local_dir = Path(self["path"])
@@ -143,6 +145,7 @@ class BatchFetchGit(TaskBatchFetch):
                     self._update_current_branch_name()
 
                 self._repo_fix_remote_origin()
+                self._repo_fix_remotes()
                 self._exec_before(cwd=self.git_local_dir)
 
                 if not self["revision"]:
@@ -388,7 +391,7 @@ class BatchFetchGit(TaskBatchFetch):
 
         try:
             stdout, _ = self._run(["git", "remote", "add", remote_name, url])
-            origin_url = stdout[0]
+            origin_url = stdout[0] if stdout else ""
         except (subprocess.CalledProcessError, IndexError) as err:
             raise GitRemoteError(
                 f"Failed to modify the Git remote url: {remote_name}") from err
@@ -511,3 +514,30 @@ class BatchFetchGit(TaskBatchFetch):
                     # TODO: handle errors
                 except subprocess.CalledProcessError as err:
                     raise BatchFetchError(str(err)) from err
+
+    def _repo_fix_remotes(self) -> None:
+        """Configure additional Git remotes defined in the task."""
+        remotes: dict[str, str] = self["remote"]
+        if not remotes:
+            return
+
+        for remote_name, correct_url in remotes.items():
+            update_remote = False
+            try:
+                current_url = self._git_get_remote_url(remote_name)
+                if current_url != correct_url:
+                    update_remote = True
+            except GitRemoteError:
+                update_remote = True
+
+            if update_remote:
+                try:
+                    self._git_set_remote_url(
+                        url=correct_url, remote_name=remote_name)
+                    self.add_output(self.indent_spaces
+                                    + f"[INFO] Remote '{remote_name}' "
+                                    f"set to {correct_url}\n")
+                except GitRemoteError as err:
+                    self.add_output(self.indent_spaces
+                                    + "[ERROR] Failed to set "
+                                    f"remote '{remote_name}': {err}\n")
