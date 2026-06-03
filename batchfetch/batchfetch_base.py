@@ -16,12 +16,14 @@
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <https://www.gnu.org/licenses/>.
 #
-"Base class used to run tasks in parallel."
+"""Base class used to run tasks in parallel."""
+
+from __future__ import annotations
 
 import os
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from schema import Optional, Or, Schema
 
@@ -37,21 +39,21 @@ class DataAlreadyInitialized(Exception):
 
 
 class TaskBase:
-    def __init__(self, data: Dict[str, Any], options: Dict[str, Any]):
-        self.global_options_schema: Dict[Any, Any] = {}
-        self.global_options_values: Dict[str, Any] = options
+    def __init__(self, data: dict[str, Any], options: dict[str, Any]) -> None:
+        self.global_options_schema: dict[Any, Any] = {}
+        self.global_options_values: dict[str, Any] = options
 
-        self.task_schema: Dict[Any, Any] = {}
-        self.task_default_values: Dict[str, Any] = {}
+        self.task_schema: dict[Any, Any] = {}
+        self.task_default_values: dict[str, Any] = {}
 
         self._item_values = data
 
         # Variables
-        self.values: Dict[str, Any] = {}
-        self.options: Dict[str, Any] = {}
+        self.values: dict[str, Any] = {}
+        self.options: dict[str, Any] = {}
         self._values_initialized = False
 
-    def _initialize_data(self):
+    def _initialize_data(self) -> None:
         if self._values_initialized:
             raise DataAlreadyInitialized
 
@@ -76,10 +78,10 @@ class TaskBase:
             "changed": False,
         }
 
-    def validate_schema(self):
+    def validate_schema(self) -> None:
         self._initialize_data()
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         self._initialize_data()
 
         if key in self.values:
@@ -94,8 +96,8 @@ class TaskBase:
 class TaskBatchFetch(TaskBase):
     """Plugin downloader base class."""
 
-    def __init__(self, data: Dict[str, Any], options: Dict[str, Any]):
-        new_options: Dict[str, Any] = {"exec_before": [],
+    def __init__(self, data: dict[str, Any], options: dict[str, Any]) -> None:
+        new_options: dict[str, Any] = {"exec_before": [],
                                        "exec_after": [],
                                        "ignore_untracked": []}
         new_options.update(options)
@@ -107,13 +109,13 @@ class TaskBatchFetch(TaskBase):
         self.env = os.environ.copy()
 
         # Default
-        self.global_options_schema: Dict[Any, Any] = {
+        self.global_options_schema: dict[Any, Any] = {
             Optional("exec_before"): Or([str], str),
             Optional("exec_after"): Or([str], str),
             Optional("ignore_untracked"): Or([str], str),
         }
 
-        self.task_schema: Dict[Any, Any] = {
+        self.task_schema: dict[Any, Any] = {
             Optional("path"): str,
             Optional("delete"): bool,
 
@@ -124,12 +126,12 @@ class TaskBatchFetch(TaskBase):
             Optional("ignore_untracked"): Or([str], str),
         }
 
-        self.task_default_values: Dict[str, Any] = {
+        self.task_default_values: dict[str, Any] = {
             # Optional items
             "delete": False,
         }
 
-    def _initialize_data(self):
+    def _initialize_data(self) -> None:
         try:
             super()._initialize_data()
         except DataAlreadyInitialized:
@@ -138,14 +140,14 @@ class TaskBatchFetch(TaskBase):
         # Mark values as initialized
         self._values_initialized = True
 
-    def _local_task_exec(self, *args, **kwargs):
+    def _local_task_exec(self, *args: Any, **kwargs: Any) -> None:
         stdout = run_indent_str(env=self.env, spaces=self.indent,
                                 *args, **kwargs)
         if not stdout.endswith("\n"):
             stdout += "\n"
         self.add_output(stdout)
 
-    def _exec_before(self, cwd: os.PathLike = Path(".")):
+    def _exec_before(self, cwd: os.PathLike = Path(".")) -> None:
         self._initialize_data()
         if self["delete"]:
             return
@@ -162,7 +164,7 @@ class TaskBatchFetch(TaskBase):
         if cmd:
             self._local_task_exec(cmd, cwd=str(cwd))
 
-    def _exec_after(self, cwd: os.PathLike = Path(".")):
+    def _exec_after(self, cwd: os.PathLike = Path(".")) -> None:
         self._initialize_data()
         if self["delete"] or not self.is_changed():
             return
@@ -183,7 +185,7 @@ class TaskBatchFetch(TaskBase):
         self._initialize_data()
         return bool(self.values["result"]["changed"])
 
-    def set_changed(self, changed: bool):
+    def set_changed(self, changed: bool) -> None:
         self._initialize_data()
         self.values["result"]["changed"] = changed
 
@@ -197,15 +199,15 @@ class TaskBatchFetch(TaskBase):
         self._initialize_data()
         return bool(self.values["result"]["error"])
 
-    def set_error(self, error: bool):
+    def set_error(self, error: bool) -> None:
         self._initialize_data()
         self.values["result"]["error"] = error
 
-    def set_output(self, output: str):
+    def set_output(self, output: str) -> None:
         self._initialize_data()
         self.values["result"]["output"] = output
 
-    def add_output(self, output: str):
+    def add_output(self, output: str) -> None:
         self._initialize_data()
         self.values["result"]["output"] += output
 
@@ -214,6 +216,6 @@ class TaskBatchFetch(TaskBase):
         self._initialize_data()
         return str(self.values["result"]["output"])
 
-    def update(self):
+    def update(self) -> dict[str, Any]:
         self._initialize_data()
         return self.values

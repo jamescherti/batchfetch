@@ -18,6 +18,8 @@
 #
 """Command line interface."""
 
+from __future__ import annotations
+
 import argparse
 import logging
 import os
@@ -25,7 +27,7 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any
 
 import colorama
 import yaml  # type: ignore
@@ -33,35 +35,37 @@ from colorama import Fore
 from schema import Optional, Or, Schema, SchemaError
 from setproctitle import setproctitle
 
-from .batchfetch_base import BatchFetchError, TaskBatchFetch
+from .batchfetch_base import BatchFetchError
 from .batchfetch_git import BatchFetchGit
 from .helpers import collect_parent_dirs
 
 
+# pylint: disable=too-many-instance-attributes
 class BatchFetchCli:
     """Command-line-interface that downloads."""
 
+    # pylint: disable=too-many-positional-arguments
     def __init__(self, max_workers: int, verbose: bool, check_untracked: bool,
-                 targets: List[str], cwd: os.PathLike):
+                 targets: list[str], cwd: os.PathLike) -> None:
         os.chdir(cwd)
         self._cwd = cwd
         self._logger = logging.getLogger(self.__class__.__name__)
         self.targets = {Path(item).absolute() for item in targets}
         self.cfg: dict = {}
         self.check_untracked = check_untracked
-        self.tracked_paths: Dict[Path, Set[str]] = {}
-        self.ignore_untracked: Set[Path] = set()
+        self.tracked_paths: dict[Path, set[str]] = {}
+        self.ignore_untracked: set[Path] = set()
         self.verbose = verbose
         self.max_workers = max_workers
-        self.dirs_relative_to_batchfetch: Set[str] = set()
+        self.dirs_relative_to_batchfetch: set[str] = set()
 
         # Plugin
-        self.batchfetch_schemas: Dict[Any, Any] = {}
-        self.batchfetch_classes: Dict[str, TaskBatchFetch] = {}
-        self.cfg_schema: Dict[Any, Any] = {}
+        self.batchfetch_schemas: dict[Any, Any] = {}
+        self.batchfetch_classes: dict[str, Any] = {}
+        self.cfg_schema: dict[Any, Any] = {}
         self._plugin_add("git", BatchFetchGit)
 
-    def _plugin_add(self, keyword: str, batchfetch_class: Any):
+    def _plugin_add(self, keyword: str, batchfetch_class: Any) -> None:
         batchfetch_instance = batchfetch_class(data={},
                                                options={})
         batchfetch_instance.validate_schema()
@@ -76,7 +80,7 @@ class BatchFetchCli:
             ]
         }
 
-    def _plugin_get(self, raw_data: dict) -> str:
+    def _plugin_get(self, raw_data: dict[str, Any]) -> str:
         keyword_found = None
         for keyword in self.batchfetch_classes:
             if keyword in raw_data:
@@ -94,7 +98,8 @@ class BatchFetchCli:
 
         return keyword_found
 
-    def load(self, path: Path):
+    def load(self, path: Path) -> None:
+        # pylint: disable=too-many-try-statements
         try:
             with open(path, "r", encoding="utf-8") as fhandler:
                 yaml_dict = yaml.load(fhandler, Loader=yaml.FullLoader)
@@ -136,7 +141,7 @@ class BatchFetchCli:
         except OSError as err:
             raise BatchFetchError(str(err)) from err
 
-    def _loads(self, data: dict):
+    def _loads(self, data: dict[str, Any]) -> None:
         schema = Schema(self.cfg_schema)
         try:
             schema.validate(data)
@@ -154,11 +159,11 @@ class BatchFetchCli:
 
         self._loads_tasks(data)
 
-    def _loads_tasks(self, data: dict):
+    def _loads_tasks(self, data: dict[str, Any]) -> None:
         if "tasks" not in data:
             return
 
-        dict_local_dir = {}  # type: ignore
+        dict_local_dir: dict[str, Any] = {}  # type: ignore
         for task in data["tasks"]:
             keyword = self._plugin_get(task)
             batchfetch_class = self.batchfetch_classes[keyword]
@@ -183,6 +188,8 @@ class BatchFetchCli:
 
             dict_local_dir[str(dest_path)] = batchfetch_instance[keyword]
 
+    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-statements
     def run_tasks(self) -> bool:
         failed = []
         error = False
@@ -192,6 +199,7 @@ class BatchFetchCli:
 
         executor_update = ThreadPoolExecutor(max_workers=self.max_workers)
 
+        # pylint: disable=too-many-try-statements
         try:
             self.dirs_relative_to_batchfetch = set()
 
@@ -281,14 +289,13 @@ class BatchFetchCli:
 
         return True
 
-    def _find_untracked_paths(self):
-        "Find the files that are untracked and should be deleted."
+    def _find_untracked_paths(self) -> None:
+        """Find the files that are untracked and should be deleted."""
         untracked_paths = set()
         cwd = Path.cwd()
-        local_ignore_untracked = set()
+        local_ignore_untracked: set[Path] = set()
 
         for tracked_dir, tracked_filenames in self.tracked_paths.items():
-            actual_filenames = {file.name for file in tracked_dir.iterdir()}
             self.ignore_untracked |= {tracked_dir}
             parents = collect_parent_dirs(cwd, tracked_dir)
             local_ignore_untracked |= parents
@@ -310,7 +317,7 @@ class BatchFetchCli:
             for path in untracked_paths:
                 err_str += ("  - " +
                             str(path.relative_to(self._cwd)) +
-                            (os.sep if path.is_dir() else "") +
+                            ("/" if path.is_dir() else "") +
                             "\n")
             err_str += ("The paths above are not managed by batchfetch."
                         " To retain them, add them to the "
@@ -319,7 +326,7 @@ class BatchFetchCli:
             raise BatchFetchError(err_str)
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     """Parse the command line arguments."""
     # Batchfetch file
     try:
@@ -329,20 +336,19 @@ def parse_args():
 
     # Jobs
     try:
-        jobs = os.environ["BATCHFETCH_JOBS"]
+        jobs_env = os.environ["BATCHFETCH_JOBS"]
     except KeyError:
         jobs = 5
     else:
-        if jobs:
-            jobs = int(jobs)
+        jobs = int(jobs_env)
 
     # Check untracked
     try:
-        check_untracked = os.environ["BATCHFETCH_CHECK_UNTRACKED"]
+        check_untracked_env = os.environ["BATCHFETCH_CHECK_UNTRACKED"]
     except KeyError:
         check_untracked = False
     else:
-        check_untracked = bool(check_untracked)
+        check_untracked = bool(check_untracked_env)
 
     desc = "Efficiently clone/pull multiple Git repositories in parallel."
     usage = "%(prog)s [--option] [TARGET]"
@@ -414,8 +420,9 @@ def parse_args():
     return args
 
 
-def command_line_interface():
+def command_line_interface() -> None:
     """Command line interface."""
+    # pylint: disable=too-many-try-statements
     try:
         errno = 0
         logging.basicConfig(level=logging.INFO, stream=sys.stdout,

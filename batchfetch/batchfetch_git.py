@@ -16,15 +16,16 @@
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <https://www.gnu.org/licenses/>.
 #
-"Clone and update Git repositories."
+"""Clone and update Git repositories."""
+
+from __future__ import annotations
 
 import os
-import posixpath
 import shutil
 import subprocess
 import textwrap
-from pathlib import Path
-from typing import List, Tuple, Union
+from pathlib import Path, PurePosixPath
+from typing import Any, Union
 
 from schema import Optional
 
@@ -43,7 +44,7 @@ class GitRemoteError(Exception):
 class BatchFetchGit(TaskBatchFetch):
     """Clone or update a Git repository."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._git_fetch_origin_done = False
 
         self.branch_commit_ref = None
@@ -88,21 +89,20 @@ class BatchFetchGit(TaskBatchFetch):
         self.current_branch = None
         self.current_commit_ref = None
 
-    def _initialize_data(self):
+    def _initialize_data(self) -> None:
         super()._initialize_data()
 
         self.values[self.main_key] = \
             self.values[self.main_key].rstrip("/")
 
         if "path" not in self.values:
-            path = \
-                posixpath.basename(self.values[self.main_key])  # type: ignore
+            path = PurePosixPath(self.values[self.main_key]).name
             # Remove .git from the file name
             if path.endswith(".git"):
                 path = path[:-4]
             self.values["path"] = path
 
-    def update(self):
+    def update(self) -> dict[str, Any]:
         """Clone or update a Git repository."""
         super().update()
 
@@ -180,25 +180,26 @@ class BatchFetchGit(TaskBatchFetch):
 
         return self.values
 
-    def _run_get_firstline(self, *args, **kwargs):
+    def _run_get_firstline(self, *args: Any, **kwargs: Any) -> str:
         stdout, _ = self._run(*args, **kwargs)
         try:
             return stdout[0]
         except IndexError:
             return ""
 
-    def _run(self, cmd: Union[List[str], str],
+    def _run(self, cmd: Union[list[str], str],
              cwd: Union[None, os.PathLike] = None,
              env: Union[None, dict] = None,
-             **kwargs) -> Tuple[List[str], List[str]]:
-        """
+             **kwargs: Any) -> tuple[list[str], list[str]]:
+        """Execute a command and return stdout and stderr.
+
         Executes a command and returns stdout and stderr as separate lists of
         strings.
 
         :param cmd: Command to be executed. Can be a list or a string.
+        :param cwd: Current working directory.
+        :param env: Environment variables.
         :param kwargs: Additional keyword arguments for Popen.
-        :cwd: Current working directory.
-        :env: Environment variables.
         :return: Tuple containing two lists: stdout lines and stderr lines.
         """
         if not cwd:
@@ -220,7 +221,7 @@ class BatchFetchGit(TaskBatchFetch):
             return ""
         return output
 
-    def _update_current_branch_name(self):
+    def _update_current_branch_name(self) -> None:
         try:
             # This returns the branch name
             stdout, _ = self._run(["git", "symbolic-ref", "--short", "HEAD"])
@@ -242,7 +243,7 @@ class BatchFetchGit(TaskBatchFetch):
             except GitRevisionDoesNotExist:
                 pass
 
-    def _repo_delete(self):
+    def _repo_delete(self) -> None:
         if not self.git_local_dir.exists():
             self.add_output(self.indent_spaces + "[INFO] Already deleted\n")
         elif not self.git_local_dir.joinpath(".git").is_dir():
@@ -258,7 +259,7 @@ class BatchFetchGit(TaskBatchFetch):
                             + f"[INFO] Deleted: '{self.git_local_dir}'")
             self.set_changed(True)
 
-    def _repo_clone(self):
+    def _repo_clone(self) -> None:
         git_clone_args = self["git_clone_args"]
         # git_clone_args += ["--recurse-submodules"]
 
@@ -267,7 +268,7 @@ class BatchFetchGit(TaskBatchFetch):
         self._run(cmd, cwd=".")
         self.set_changed(True)
 
-    def _repo_fetch(self):
+    def _repo_fetch(self) -> bool:
         # Merge
         do_git_fetch = self["git_pull"]
         do_git_fetch = False
@@ -307,7 +308,7 @@ class BatchFetchGit(TaskBatchFetch):
         self._git_fetch_origin()
         return True
 
-    def _git_merge(self):
+    def _git_merge(self) -> bool:
         git_merge = False
 
         # Merge
@@ -359,7 +360,7 @@ class BatchFetchGit(TaskBatchFetch):
         return origin_url
 
     def _git_is_local_branch(self, branch: str) -> bool:
-        "Return True if it is a local branch that exists."
+        """Return True if it is a local branch that exists."""
         try:
             stdout, _ = self._run(["git", "rev-parse", "--symbolic-full-name",
                                    branch])
@@ -375,8 +376,8 @@ class BatchFetchGit(TaskBatchFetch):
 
         return False
 
-    def _git_rev_parse_verify(self, revision: str) -> List[str]:
-        stdout: List[str] = []
+    def _git_rev_parse_verify(self, revision: str) -> list[str]:
+        stdout: list[str] = []
         error = False
         try:
             stdout, _ = self._run(["git", "rev-parse", "--verify", revision])
@@ -430,14 +431,14 @@ class BatchFetchGit(TaskBatchFetch):
 
         return branch_changed
 
-    def _git_fetch_origin(self):
+    def _git_fetch_origin(self) -> None:
         # Fetch
         if not self._git_fetch_origin_done:
             cmd = ["git", "fetch", "origin"]
             self._run(cmd)
             self._git_fetch_origin_done = True
 
-    def _repo_fix_remote_origin(self):
+    def _repo_fix_remote_origin(self) -> None:
         correct_origin_url = self[self.main_key]
         update_remote_origin = False
 

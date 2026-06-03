@@ -16,26 +16,26 @@
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <https://www.gnu.org/licenses/>.
 #
-"Batchfetch helper functions."
+"""Batchfetch helper functions."""
+
+from __future__ import annotations
 
 import hashlib
 import os
 import shlex
 from pathlib import Path
 from subprocess import PIPE, CalledProcessError, Popen, list2cmdline
-from typing import List, Set, Tuple, Union
+from typing import Any, Union
 
 
-def md5sum(filename: os.PathLike):
-    """
-    Calculate and return the MD5 checksum of a file.
+def md5sum(filename: os.PathLike) -> str:
+    """Calculate and return the MD5 checksum of a file.
 
     Args:
         filename: Path to the file for which the MD5 checksum is calculated.
 
     Returns:
         str: The MD5 checksum of the file.
-
     """
     md5 = hashlib.md5()
     with open(filename, "rb") as file:
@@ -44,9 +44,10 @@ def md5sum(filename: os.PathLike):
     return md5.hexdigest()
 
 
-def run_simple(cmd: Union[List[str], str],
-               **kwargs) -> Tuple[List[str], List[str]]:
-    """
+def run_simple(cmd: Union[list[str], str],
+               **kwargs: Any) -> tuple[list[str], list[str]]:
+    """Execute a command and return stdout and stderr.
+
     Executes a command and returns stdout and stderr as separate lists of
     strings.
 
@@ -72,8 +73,9 @@ def run_simple(cmd: Union[List[str], str],
     return (stdout_lines, stderr_lines)
 
 
-def run_indent_str(cmd: Union[List[str], str], **kwargs) -> str:
-    """
+def run_indent_str(cmd: Union[list[str], str], **kwargs: Any) -> str:
+    """Execute a command and return its stdout output as a single string.
+
     Executes a command and returns its stdout output as a single string with
     preserved line breaks.
 
@@ -87,9 +89,8 @@ def run_indent_str(cmd: Union[List[str], str], **kwargs) -> str:
     return "\n".join(stdout) + "\n"
 
 
-def indent_raw_output(raw_output: List[str], spaces: int = 4) -> List[str]:
-    """
-    Indents each line of the given list of strings.
+def indent_raw_output(raw_output: list[str], spaces: int = 4) -> list[str]:
+    """Indent each line of the given list of strings.
 
     :param raw_output: List of strings to indent.
     :param spaces: Number of spaces to indent each line.
@@ -99,9 +100,10 @@ def indent_raw_output(raw_output: List[str], spaces: int = 4) -> List[str]:
     return [indentation + line for line in raw_output]
 
 
-def run_indent(cmd: Union[List[str], str], spaces: int = 4,
-               **kwargs) -> Tuple[List[str], List[str]]:
-    """
+def run_indent(cmd: Union[list[str], str], spaces: int = 4,
+               **kwargs: Any) -> tuple[list[str], list[str]]:
+    """Execute a command and return its stdout and stderr output indented.
+
     Executes a command and returns its stdout and stderr output, both indented.
 
     :param cmd: Command to be executed, either as a list of strings or a single
@@ -119,15 +121,15 @@ def run_indent(cmd: Union[List[str], str], spaces: int = 4,
     return (stdout, stderr)
 
 
-def collect_parent_dirs(base_dir: Path, dir: Path) -> Set[Path]:
+def collect_parent_dirs(base_dir: Path, directory: Path) -> set[Path]:
     """Collect all parent directories of 'dir' until 'base_dir' is reached.
 
     If 'dir' is not inside 'base_dir', return None.
     """
-    parents: Set[Path] = set()
+    parents: set[Path] = set()
 
-    for dir_path, base_path in [(dir.resolve(), base_dir.resolve()),
-                                (dir.absolute(), base_dir.absolute())]:
+    for dir_path, base_path in ((directory.resolve(), base_dir.resolve()),
+                                (directory.absolute(), base_dir.absolute())):
         try:
             # Check if dir is inside base_dir
             dir_path.relative_to(base_path)
