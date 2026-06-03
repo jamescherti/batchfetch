@@ -146,8 +146,8 @@ You can define additional remotes for a Git repository using the `remote` option
 ```yaml
 ---
 tasks:
-  - git: git@github.com:jamescherti/motley-overlay
-    path: linux/motley-overlay
+  - git: https://github.com/jamescherti/easysession.el
+    path: emacs/easysession
     remote:
       upstream: https://github.com/name/repo
       upstream2: https://github.com/name/repo2
