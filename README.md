@@ -83,6 +83,7 @@ options:
 ```
 
 ## Features
+
 - Git Clone and Fetch/Merge: Clones the repositories and their submodules, ensuring that all the repositories are always up-to-date by fetching and merging changes.
 - Parallel Operations: Utilizes threads to simultaneously Git clone or pull multiple repositories, dramatically reducing wait times.
 - User-Friendly Interface: Provides simple and straightforward command-line options that make it easy to get started and effectively manage your repositories.
@@ -101,7 +102,7 @@ When *batchfetch* encounters an untracked file, it displays an error message to 
 
 Here is an example of a *batchfetch.yaml* file that enables *batchfetch* to accept a list of untracked files:
 
-``` yaml
+```yaml
 options:
   ignore_untracked:
     - ./test
@@ -127,7 +128,8 @@ Batchfetch is fast, not only because it runs Git commands in parallel, but also 
 When the user has specifies a revision (branch or commit reference), Batchfetch only performs a `git fetch` if that revision does not exist locally. If the revision is already up to date, it simply proceeds to the next repository in the queue.
 
 That's why it is highly recommended to always specify the revision to speed up Batchfetch, if speed is important to you. Here is an example of a `batchfetch.yaml` file where the branch (`1.1.0`) or commit reference (`b9c6d9b6134b4981760893254f804a371ffbc899`) is specified:
-``` yaml
+
+```yaml
 tasks:
   - git: https://github.com/jamescherti/outline-indent.el
     revision: "1.1.0"
@@ -137,12 +139,59 @@ tasks:
     revision: b9c6d9b6134b4981760893254f804a371ffbc899
 ```
 
+### How to configure additional Git remotes?
+
+You can define additional remotes for a Git repository using the `remote` option. Pass a list of key-value pairs where the key is the remote name and the value is the corresponding URL. Batchfetch will automatically ensure these remotes are present and point to the correct URLs.
+
+```yaml
+---
+tasks:
+  - git: git@github.com:jamescherti/motley-overlay
+    path: linux/motley-overlay
+    remote:
+      upstream: https://github.com/name/repo
+      upstream2: https://github.com/name/repo2
+```
+
+### How to customize Git clone, merge, and update strategies?
+
+Batchfetch allows you to define advanced options for interacting with Git repositories. These parameters can be declared globally under the `options` block to apply to all tasks, or individually within a specific task to override the global defaults.
+
+* `git_clone_args`: A list of extra arguments to pass to `git clone`.
+* `git_merge_args`: A list of extra arguments to pass to `git merge`.
+* `git_update_strategy`: Specifies how updates should be applied. Valid options are `"merge"` (default), `"rebase"`, or `"reset"`.
+* `git_pull`: A boolean indicating whether to run Git pull/fetch operations. Set to `false` to disable updating entirely (default: `true`).
+
+Here is an example demonstrating both global and local configurations:
+
+```yaml
+---
+
+options:
+  # Apply these defaults to all tasks
+  git_update_strategy: reset
+  git_clone_args:
+    - --recurse-submodules
+
+tasks:
+  - git: https://github.com/jamescherti/compile-angel.el
+    git_pull: false # Do not attempt to update this repo
+
+  - git: https://github.com/jamescherti/outline-indent.el
+    # Override global strategy specifically for this task
+    git_update_strategy: merge
+    git_merge_args:
+      - --no-ff
+
+```
+
 ### How to execute a command before and after a task?
 
 To execute a command both before and after a specific task, you can define the `exec_before` and `exec_after` directives within the task configuration. These directives specify commands to be executed at the respective stages of the task lifecycle.
 
 Here is an example:
-``` yaml
+
+```yaml
 ---
 tasks:
   - git: https://github.com/jamescherti/easysession.el
@@ -158,6 +207,7 @@ To configure `batchfetch` to handle a specific path, you can define your tasks i
 #### Example `batchfetch.yml` file:
 
 In the following example, the `easysession` task clones two Git repositories:
+
 ```yaml
 ---
 tasks:
