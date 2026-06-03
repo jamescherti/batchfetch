@@ -166,7 +166,7 @@ class TaskBatchFetch(TaskBase):
 
     def _exec_after(self, cwd: os.PathLike = Path(".")) -> None:
         self._initialize_data()
-        if self["delete"] or not self.is_changed():
+        if self["delete"] or self.is_error() or not self.is_changed():
             return
 
         # Local

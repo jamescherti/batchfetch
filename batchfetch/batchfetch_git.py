@@ -169,8 +169,7 @@ class BatchFetchGit(TaskBatchFetch):
                 if git_fetch_done:
                     self._git_apply_update_strategy()
 
-                if self.get_changed():
-                    self._exec_after(cwd=self.git_local_dir)
+                self._exec_after(cwd=self.git_local_dir)
         except BatchFetchError as err:
             self.set_error(True)
             self.add_output(self.indent_spaces + "[ERROR] " + str(err) + "\n")
