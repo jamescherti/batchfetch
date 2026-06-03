@@ -154,7 +154,7 @@ class BatchFetchGit(TaskBatchFetch):
                         )
 
                     self.add_output(self.indent_spaces +
-                                    "[INFO] Update revision to: '" +
+                                    "[INFO] Default revision resolved to: '" +
                                     self["revision"] + "'\n")
 
                 git_fetch_done = False
