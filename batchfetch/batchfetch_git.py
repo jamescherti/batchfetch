@@ -125,6 +125,7 @@ class BatchFetchGit(TaskBatchFetch):
                         + (f" (Ref: {self['revision']})"
                            if self["revision"] else "") + "\n")
 
+        # pylint: disable=too-many-try-statements
         try:
             # Delete
             if self["delete"]:
@@ -157,6 +158,7 @@ class BatchFetchGit(TaskBatchFetch):
                                     "[INFO] Update revision to: '" +
                                     self["revision"] + "'\n")
 
+                git_fetch_done = False
                 if do_git_fetch:
                     git_fetch_done = self._repo_fetch()
 
@@ -311,6 +313,14 @@ class BatchFetchGit(TaskBatchFetch):
         self._git_fetch_origin()
         return True
 
+    def _is_working_tree_clean(self) -> bool:
+        """Return True if the git working tree is clean."""
+        try:
+            stdout, _ = self._run(["git", "status", "--porcelain"])
+            return len(stdout) == 0
+        except subprocess.CalledProcessError:
+            return False
+
     def _git_apply_update_strategy(self) -> bool:
         git_updated = False
 
@@ -321,12 +331,20 @@ class BatchFetchGit(TaskBatchFetch):
             commit_ref_head = self._git_ref(cwd=self.git_local_dir)
 
             strategy = self["git_update_strategy"]
+
+            if strategy in ("rebase", "reset"):
+                if not self._is_working_tree_clean():
+                    raise BatchFetchError(
+                        f"Working tree is not clean. Aborting {strategy} to "
+                        "prevent data loss."
+                    )
+
             if strategy == "rebase":
                 self._run(["git", "rebase"] +
                           [f"origin/{self.current_branch}"])
             elif strategy == "reset":
                 self._run(["git", "reset", "--hard",
-                          f"origin/{self.current_branch}"])
+                           f"origin/{self.current_branch}"])
             else:
                 self._run(["git", "merge"] + self["git_merge_args"] +
                           [f"origin/{self.current_branch}"])
@@ -338,7 +356,7 @@ class BatchFetchGit(TaskBatchFetch):
                 self._run(["git", "log",
                            '--pretty=format:"%h %ad %s [%cn]"',
                            "--decorate", "--date=short",
-                           f"{commit_ref_head}..{git_ref_after_merge}"])
+                           f"{commit_ref_head}..{git_ref_after_update}"])
 
         return git_updated
 
