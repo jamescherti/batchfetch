@@ -79,8 +79,7 @@ class BatchFetchGit(TaskBatchFetch):
         # Data
         self.global_options_values.update({"git_clone_args": [],
                                            "git_merge_args": [],
-                                           "git_pull": True,
-                                           "git_update_strategy": "merge"})
+                                           "git_pull": True})
 
         self.task_default_values.update({
             self.main_key: "",
@@ -338,6 +337,12 @@ class BatchFetchGit(TaskBatchFetch):
                         f"Working tree is not clean. Aborting {strategy} to "
                         "prevent data loss."
                     )
+
+            self.add_output(
+                self.indent_spaces
+                + f"[INFO] Applying update strategy: {strategy} from "
+                f"origin/{self.current_branch}\n"
+            )
 
             if strategy == "rebase":
                 self._run(["git", "rebase"] +
