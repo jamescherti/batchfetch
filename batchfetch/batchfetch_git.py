@@ -27,7 +27,7 @@ import textwrap
 from pathlib import Path, PurePosixPath
 from typing import Any, Union
 
-from schema import Optional
+from schema import Optional, Or
 
 from .batchfetch_base import BatchFetchError, TaskBatchFetch
 from .helpers import run_simple
@@ -65,6 +65,7 @@ class BatchFetchGit(TaskBatchFetch):
             Optional("git_clone_args"): [str],
             Optional("git_merge_args"): [str],
             Optional("git_pull"): bool,
+            Optional("git_update_strategy"): Or("merge", "rebase", "reset"),
         })
 
         self.global_options_schema.update({
@@ -72,12 +73,14 @@ class BatchFetchGit(TaskBatchFetch):
             Optional("git_clone_args"): [str],
             Optional("git_merge_args"): [str],
             Optional("git_pull"): bool,
+            Optional("git_update_strategy"): Or("merge", "rebase", "reset"),
         })
 
         # Data
         self.global_options_values.update({"git_clone_args": [],
                                            "git_merge_args": [],
-                                           "git_pull": True})
+                                           "git_pull": True,
+                                           "git_update_strategy": "merge"})
 
         self.task_default_values.update({
             self.main_key: "",
@@ -160,7 +163,7 @@ class BatchFetchGit(TaskBatchFetch):
                 self._repo_fix_branch()
 
                 if git_fetch_done:
-                    self._git_merge()
+                    self._git_apply_update_strategy()
 
                 if self.get_changed():
                     self._exec_after(cwd=self.git_local_dir)
@@ -308,26 +311,36 @@ class BatchFetchGit(TaskBatchFetch):
         self._git_fetch_origin()
         return True
 
-    def _git_merge(self) -> bool:
-        git_merge = False
+    def _git_apply_update_strategy(self) -> bool:
+        git_updated = False
 
-        # Merge
+        # Merge, Rebase, or Reset
         real_branch = self._git_is_local_branch("HEAD")
         if real_branch and self.current_branch:
             # TODO: only merge when difference from upstream
             commit_ref_head = self._git_ref(cwd=self.git_local_dir)
-            self._run(["git", "merge"] + self["git_merge_args"] +
-                      [f"origin/{self.current_branch}"])
-            git_ref_after_merge = self._git_ref(cwd=self.git_local_dir)
-            if commit_ref_head != git_ref_after_merge:
-                git_merge = True
+
+            strategy = self["git_update_strategy"]
+            if strategy == "rebase":
+                self._run(["git", "rebase"] +
+                          [f"origin/{self.current_branch}"])
+            elif strategy == "reset":
+                self._run(["git", "reset", "--hard",
+                          f"origin/{self.current_branch}"])
+            else:
+                self._run(["git", "merge"] + self["git_merge_args"] +
+                          [f"origin/{self.current_branch}"])
+
+            git_ref_after_update = self._git_ref(cwd=self.git_local_dir)
+            if commit_ref_head != git_ref_after_update:
+                git_updated = True
                 self.set_changed(True)
                 self._run(["git", "log",
                            '--pretty=format:"%h %ad %s [%cn]"',
                            "--decorate", "--date=short",
                            f"{commit_ref_head}..{git_ref_after_merge}"])
 
-        return git_merge
+        return git_updated
 
     def _git_get_remote_url(self, remote_name: str = "origin") -> str:
         origin_url = ""
