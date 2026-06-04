@@ -331,7 +331,10 @@ class BatchFetchGit(TaskBatchFetch):
             # TODO: only merge when difference from upstream
             commit_ref_head = self._git_ref(cwd=self.git_local_dir)
 
-            strategy = self["git_update_strategy"]
+            try:
+                strategy = self["git_update_strategy"]
+            except KeyError:
+                strategy = "merge"
 
             if strategy in ("rebase", "reset"):
                 if not self._is_working_tree_clean():
