@@ -404,10 +404,18 @@ class BatchFetchGit(TaskBatchFetch):
             if commit_ref_head != git_ref_after_update:
                 git_updated = True
                 self.set_changed(True)
-                self._run(["git", "log",
-                           '--pretty=format:"%h %ad %s [%cn]"',
-                           "--decorate", "--date=short",
-                           f"{commit_ref_head}..{git_ref_after_update}"])
+                stdout, _ = self._run([
+                    "git", "log",
+                    "--pretty=format:%h %ad %s [%cn]",
+                    "--decorate", "--date=short",
+                    f"{commit_ref_head}..{git_ref_after_update}"
+                ])
+                if stdout:
+                    self.add_output(self.indent_spaces +
+                                    "[INFO] Updated commits:\n")
+                    for line in stdout:
+                        self.add_output(self.indent_spaces +
+                                        "  " + line + "\n")
 
         return git_updated
 
