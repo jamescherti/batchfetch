@@ -501,24 +501,35 @@ class BatchFetchGit(TaskBatchFetch):
             # returns a different commit revision
             git_tags, _ = self._run(["git", "tag", "--points-at", "HEAD"])
 
+            is_branch = False
             # Also check the commit revision in case
             # branch is a commit revision instead of a tag
             try:
-                # Check if the branch exists
+                # Check if the branch exists remotely
                 git_ref_branch = self._git_rev_parse_verify("origin/"
                                                             + self["revision"]
                                                             + "^{commit}")[0]
+                is_branch = True
             except GitRevisionDoesNotExist:
                 # Check if the commit ref exists
                 try:
                     git_ref_branch = \
                         self._git_rev_parse_verify(self["revision"])[0]
+                    if self._git_is_local_branch(self["revision"]):
+                        is_branch = True
                 except GitRevisionDoesNotExist as err:
                     raise BatchFetchError(f"The branch '{self['revision']}' "
                                           "does not exist.") from err
 
-            if git_ref_after_merge != git_ref_branch and \
-                    self["revision"] not in git_tags:
+            needs_checkout = False
+            if self.current_branch != self["revision"]:
+                if is_branch:
+                    needs_checkout = True
+                elif git_ref_after_merge != git_ref_branch and \
+                        self["revision"] not in git_tags:
+                    needs_checkout = True
+
+            if needs_checkout:
                 # Update the branch
                 self._run(["git", "checkout"] + [self["revision"]])
                 self.add_output(self.indent_spaces
