@@ -287,7 +287,7 @@ class BatchFetchCli:
 
             return False
         else:
-            if self.check_untracked:
+            if self.check_untracked and not self.targets:
                 self._find_untracked_paths()
 
             if num_success == 0:
