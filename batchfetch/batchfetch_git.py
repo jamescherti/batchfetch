@@ -199,7 +199,7 @@ class BatchFetchGit(TaskBatchFetch):
 
     def _run(self, cmd: Union[list[str], str],
              cwd: Union[None, os.PathLike, str] = None,
-             env: Union[None, dict] = None,
+             env: Union[None, dict[str, str]] = None,
              **kwargs: Any) -> tuple[list[str], list[str]]:
         """Execute a command and return stdout and stderr.
 
@@ -235,14 +235,14 @@ class BatchFetchGit(TaskBatchFetch):
                 return stdout[0].strip()
         except subprocess.CalledProcessError as err:
             raise BatchFetchError(
-                f"No upstream tracking branch found for '{
-                    self.current_branch}'. "
+                "No upstream tracking branch found "
+                f"for '{self.current_branch}'. "
                 "Please configure an upstream branch before updating."
             ) from err
 
         raise BatchFetchError(
-            f"Failed to parse upstream tracking branch for '{
-                self.current_branch}'."
+            "Failed to parse upstream tracking "
+            f"branch for '{self.current_branch}'."
         )
 
     def _git_ref(self, cwd: Union[None, Path] = None) -> str:
@@ -309,7 +309,7 @@ class BatchFetchGit(TaskBatchFetch):
         self.set_changed(True)
 
     def _repo_fetch(self) -> bool:
-        """Fetch the remote Git repository and determine if an update is needed."""
+        """Fetch the remote repository and determine if an update is needed."""
         # Merge
         do_git_fetch = self["git_pull"]
 

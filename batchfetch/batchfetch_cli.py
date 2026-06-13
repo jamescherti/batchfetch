@@ -106,7 +106,7 @@ class BatchFetchCli:
         # pylint: disable=too-many-try-statements
         try:
             with open(path, "r", encoding="utf-8") as fhandler:
-                yaml_dict: dict[str, Any] = \
+                yaml_dict: Any = \
                     yaml.load(fhandler, Loader=yaml.FullLoader)
                 if not isinstance(yaml_dict, dict):
                     print(f"Error: Invalid format: {yaml_dict}.",
@@ -467,7 +467,7 @@ def command_line_interface() -> None:
         except KeyboardInterrupt:
             print("Interrupted.", file=sys.stderr)
             errno = 1
-        except (yaml.parser.MarkedYAMLError, BatchFetchError) as err:
+        except (yaml.error.MarkedYAMLError, BatchFetchError) as err:
             print(f"Error: {err}.", file=sys.stderr)
             errno = 1
 
