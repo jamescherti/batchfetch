@@ -47,11 +47,12 @@ class BatchFetchCli:
     # pylint: disable=too-many-positional-arguments
     def __init__(self, max_workers: int, verbose: bool, check_untracked: bool,
                  targets: list[str], cwd: os.PathLike) -> None:
+        """Initialize the batchfetch command-line interface."""
         os.chdir(cwd)
         self._cwd = cwd
         self._logger = logging.getLogger(self.__class__.__name__)
         self.targets = {Path(item).absolute() for item in targets}
-        self.cfg: dict = {}
+        self.cfg: dict[str, Any] = {}
         self.check_untracked = check_untracked
         self.tracked_paths: dict[Path, set[str]] = {}
         self.ignore_untracked: set[Path] = set()
@@ -66,6 +67,7 @@ class BatchFetchCli:
         self._plugin_add("git", BatchFetchGit)
 
     def _plugin_add(self, keyword: str, batchfetch_class: Any) -> None:
+        """Register a plugin class and its schema."""
         batchfetch_instance = batchfetch_class(data={},
                                                options={})
         batchfetch_instance.validate_schema()
@@ -81,6 +83,7 @@ class BatchFetchCli:
         }
 
     def _plugin_get(self, raw_data: dict[str, Any]) -> str:
+        """Retrieve the correct plugin keyword based on raw data."""
         keyword_found = None
         for keyword in self.batchfetch_classes:
             if keyword in raw_data:
@@ -99,10 +102,12 @@ class BatchFetchCli:
         return keyword_found
 
     def load(self, path: Path) -> None:
+        """Load and parse the batchfetch YAML configuration file."""
         # pylint: disable=too-many-try-statements
         try:
             with open(path, "r", encoding="utf-8") as fhandler:
-                yaml_dict = yaml.load(fhandler, Loader=yaml.FullLoader)
+                yaml_dict: dict[str, Any] = \
+                    yaml.load(fhandler, Loader=yaml.FullLoader)
                 if not isinstance(yaml_dict, dict):
                     print(f"Error: Invalid format: {yaml_dict}.",
                           file=sys.stderr)
@@ -142,6 +147,7 @@ class BatchFetchCli:
             raise BatchFetchError(str(err)) from err
 
     def _loads(self, data: dict[str, Any]) -> None:
+        """Validate and load the configuration data dictionary."""
         schema = Schema(self.cfg_schema)
         try:
             schema.validate(data)
@@ -160,6 +166,7 @@ class BatchFetchCli:
         self._loads_tasks(data)
 
     def _loads_tasks(self, data: dict[str, Any]) -> None:
+        """Load and validate tasks from the configuration data."""
         if "tasks" not in data:
             return
 
@@ -191,6 +198,7 @@ class BatchFetchCli:
     # pylint: disable=too-many-branches
     # pylint: disable=too-many-statements
     def run_tasks(self) -> bool:
+        """Execute all configured tasks in parallel using a thread pool."""
         failed = []
         error = False
         threads = []
@@ -421,7 +429,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def command_line_interface() -> None:
-    """Command line interface."""
+    """Entry point for the command line interface."""
     # pylint: disable=too-many-try-statements
     try:
         errno = 0

@@ -39,7 +39,10 @@ class DataAlreadyInitialized(Exception):
 
 
 class TaskBase:
+    """Base class representing a general task to be executed."""
+
     def __init__(self, data: dict[str, Any], options: dict[str, Any]) -> None:
+        """Initialize the task with specific data and options."""
         self.global_options_schema: dict[Any, Any] = {}
         self.global_options_values: dict[str, Any] = options
 
@@ -54,6 +57,7 @@ class TaskBase:
         self._values_initialized = False
 
     def _initialize_data(self) -> None:
+        """Initialize the options and data values for the task."""
         if self._values_initialized:
             raise DataAlreadyInitialized
 
@@ -79,9 +83,11 @@ class TaskBase:
         }
 
     def validate_schema(self) -> None:
+        """Validate the schema of the task data and options."""
         self._initialize_data()
 
     def __getitem__(self, key: str) -> Any:
+        """Retrieve an item from the task values or options."""
         self._initialize_data()
 
         if key in self.values:
@@ -90,13 +96,14 @@ class TaskBase:
         if key in self.options:
             return self.options[key]
 
-        raise KeyError(f"The item '{key}' was not found in '{self.values}")
+        raise KeyError(f"The item '{key}' was not found in '{self.values}'")
 
 
 class TaskBatchFetch(TaskBase):
     """Plugin downloader base class."""
 
     def __init__(self, data: dict[str, Any], options: dict[str, Any]) -> None:
+        """Initialize the batchfetch task plugin."""
         new_options: dict[str, Any] = {"exec_before": [],
                                        "exec_after": [],
                                        "ignore_untracked": []}
@@ -132,6 +139,7 @@ class TaskBatchFetch(TaskBase):
         }
 
     def _initialize_data(self) -> None:
+        """Safely initialize data for the batchfetch task."""
         try:
             super()._initialize_data()
         except DataAlreadyInitialized:
@@ -141,6 +149,7 @@ class TaskBatchFetch(TaskBase):
         self._values_initialized = True
 
     def _local_task_exec(self, *args: Any, **kwargs: Any) -> None:
+        """Execute a local task command and capture its output."""
         stdout = run_indent_str(env=self.env, spaces=self.indent,
                                 *args, **kwargs)
         if not stdout.endswith("\n"):
@@ -148,6 +157,7 @@ class TaskBatchFetch(TaskBase):
         self.add_output(stdout)
 
     def _exec_before(self, cwd: os.PathLike = Path(".")) -> None:
+        """Execute pre-task commands defined in options and task items."""
         self._initialize_data()
         if self["delete"]:
             return
@@ -165,6 +175,7 @@ class TaskBatchFetch(TaskBase):
             self._local_task_exec(cmd, cwd=str(cwd))
 
     def _exec_after(self, cwd: os.PathLike = Path(".")) -> None:
+        """Execute post-task commands if the task was changed successfully."""
         self._initialize_data()
         if self["delete"] or self.is_error() or not self.is_changed():
             return
@@ -182,32 +193,39 @@ class TaskBatchFetch(TaskBase):
             self._local_task_exec(cmd, cwd=str(cwd))
 
     def is_changed(self) -> bool:
+        """Return True if the task execution resulted in changes."""
         self._initialize_data()
         return bool(self.values["result"]["changed"])
 
     def set_changed(self, changed: bool) -> None:
+        """Set the changed status of the task."""
         self._initialize_data()
         self.values["result"]["changed"] = changed
 
     def get_changed(self) -> bool:
+        """Return the changed status of the task without initializing data."""
         try:
             return bool(self.values["result"]["changed"])
         except KeyError:
             return False
 
     def is_error(self) -> bool:
+        """Return True if the task encountered an error."""
         self._initialize_data()
         return bool(self.values["result"]["error"])
 
     def set_error(self, error: bool) -> None:
+        """Set the error status of the task."""
         self._initialize_data()
         self.values["result"]["error"] = error
 
     def set_output(self, output: str) -> None:
+        """Set the output string of the task."""
         self._initialize_data()
         self.values["result"]["output"] = output
 
     def add_output(self, output: str) -> None:
+        """Append a string to the output of the task."""
         self._initialize_data()
         self.values["result"]["output"] += output
 
@@ -217,5 +235,6 @@ class TaskBatchFetch(TaskBase):
         return str(self.values["result"]["output"])
 
     def update(self) -> dict[str, Any]:
+        """Update the task data and return the current values."""
         self._initialize_data()
         return self.values
