@@ -366,7 +366,7 @@ def parse_args() -> argparse.Namespace:
         "targets", metavar="target", type=str, nargs="*",
         help=("This is a target path that batchfetch is supposed to handle. "
               "When no target is specified, execute the tasks of all target "
-              "paths defined in the batchfetch.yml list of tasks."),
+              "paths defined in the batchfetch.yaml list of tasks."),
     )
 
     parser.add_argument(

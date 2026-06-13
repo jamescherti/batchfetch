@@ -31,7 +31,7 @@ from .helpers import run_indent_str
 
 
 class BatchFetchError(Exception):
-    """Exception raised by Downloader()."""
+    """Exception raised by batchfetch functions."""
 
 
 class DataAlreadyInitialized(Exception):

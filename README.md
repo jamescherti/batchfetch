@@ -46,7 +46,7 @@ tasks:
     delete: true
 ```
 
-Execute the `batchfetch` command from the same directory as `batchfetch.yml` to make it clone or update the local copies of the repositories above.
+Execute the `batchfetch` command from the same directory as `batchfetch.yaml` to make it clone or update the local copies of the repositories above.
 
 ## Command-line options
 
@@ -60,7 +60,7 @@ Efficiently clone/pull multiple Git repositories in parallel.
 positional arguments:
   target                This is a target path that batchfetch is supposed to
                         handle. When no target is specified, execute the tasks
-                        of all target paths defined in the batchfetch.yml list
+                        of all target paths defined in the batchfetch.yaml list
                         of tasks.
 
 options:
@@ -202,9 +202,9 @@ tasks:
 
 ### How to make batchfetch handle only one path?
 
-To configure `batchfetch` to handle a specific path, you can define your tasks in a `batchfetch.yml` file and pass the desired path as an argument to the `batchfetch` command.
+To configure `batchfetch` to handle a specific path, you can define your tasks in a `batchfetch.yaml` file and pass the desired path as an argument to the `batchfetch` command.
 
-#### Example `batchfetch.yml` file:
+#### Example `batchfetch.yaml` file:
 
 In the following example, the `easysession` task clones two Git repositories:
 
@@ -224,7 +224,7 @@ To make `batchfetch` clone only `easysession`, pass its path as an argument:
 batchfetch easysession
 ```
 
-This will execute only the task corresponding to the `easysession` path, skipping all others in the `batchfetch.yml` file.
+This will execute only the task corresponding to the `easysession` path, skipping all others in the `batchfetch.yaml` file.
 
 ### How can I configure batchfetch to load a file other than batchfetch.yaml?
 
