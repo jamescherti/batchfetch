@@ -139,20 +139,6 @@ tasks:
     revision: b9c6d9b6134b4981760893254f804a371ffbc899
 ```
 
-### How to configure additional Git remotes?
-
-You can define additional remotes for a Git repository using the `remote` option. Pass a list of key-value pairs where the key is the remote name and the value is the corresponding URL. Batchfetch will automatically ensure these remotes are present and point to the correct URLs.
-
-```yaml
----
-tasks:
-  - git: https://github.com/jamescherti/easysession.el
-    path: emacs/easysession
-    remote:
-      upstream: https://github.com/name/repo
-      upstream2: https://github.com/name/repo2
-```
-
 ### How to customize Git clone, merge, and update strategies?
 
 Batchfetch allows you to define advanced options for interacting with Git repositories. These parameters can be declared globally under the `options` block to apply to all tasks, or individually within a specific task to override the global defaults.
@@ -183,6 +169,20 @@ tasks:
     git_merge_args:
       - --no-ff
 
+```
+
+### How to configure additional Git remotes?
+
+You can define additional remotes for a Git repository using the `remote` option. Pass a list of key-value pairs where the key is the remote name and the value is the corresponding URL. Batchfetch will automatically ensure these remotes are present and point to the correct URLs.
+
+```yaml
+---
+tasks:
+  - git: https://github.com/jamescherti/easysession.el
+    path: emacs/easysession
+    remote:
+      upstream: https://github.com/name/repo
+      upstream2: https://github.com/name/repo2
 ```
 
 ### How to execute a command before and after a task?

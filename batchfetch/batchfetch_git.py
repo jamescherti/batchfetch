@@ -47,7 +47,7 @@ class BatchFetchGit(TaskBatchFetch):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._git_fetch_origin_done = False
 
-        self.branch_commit_ref = None
+        self.branch_commit_ref: str | None = None
         self.is_branch = False
 
         super().__init__(*args, **kwargs)
@@ -90,8 +90,8 @@ class BatchFetchGit(TaskBatchFetch):
         })
 
         self.git_local_dir = Path(self["path"])
-        self.current_branch = None
-        self.current_commit_ref = None
+        self.current_branch: str | None = None
+        self.current_commit_ref: str | None = None
 
     def _initialize_data(self) -> None:
         super()._initialize_data()
@@ -194,7 +194,7 @@ class BatchFetchGit(TaskBatchFetch):
             return ""
 
     def _run(self, cmd: Union[list[str], str],
-             cwd: Union[None, os.PathLike] = None,
+             cwd: Union[None, os.PathLike, str] = None,
              env: Union[None, dict] = None,
              **kwargs: Any) -> tuple[list[str], list[str]]:
         """Execute a command and return stdout and stderr.
@@ -213,6 +213,33 @@ class BatchFetchGit(TaskBatchFetch):
         if not env:
             env = self.env
         return run_simple(cmd=cmd, env=env, cwd=cwd, **kwargs)
+
+    def _get_upstream_branch(self) -> str:
+        """Return the upstream tracking branch for the current branch."""
+        if not self.current_branch:
+            raise BatchFetchError(
+                "Not currently on any branch. Cannot determine upstream."
+            )
+
+        try:
+            stdout, _ = self._run(
+                ["git", "rev-parse", "--abbrev-ref",
+                 f"{self.current_branch}@{{upstream}}"]
+            )
+            # TODO: Don't repeat strip 2 times
+            if stdout and stdout[0].strip():
+                return stdout[0].strip()
+        except subprocess.CalledProcessError as err:
+            raise BatchFetchError(
+                f"No upstream tracking branch found for '{
+                    self.current_branch}'. "
+                "Please configure an upstream branch before updating."
+            ) from err
+
+        raise BatchFetchError(
+            f"Failed to parse upstream tracking branch for '{
+                self.current_branch}'."
+        )
 
     def _git_ref(self, cwd: Union[None, Path] = None) -> str:
         """Get the commit revision of HEAD.
@@ -277,7 +304,6 @@ class BatchFetchGit(TaskBatchFetch):
     def _repo_fetch(self) -> bool:
         # Merge
         do_git_fetch = self["git_pull"]
-        do_git_fetch = False
 
         try:
             # Check if the revision such as
@@ -343,21 +369,22 @@ class BatchFetchGit(TaskBatchFetch):
                         "prevent data loss."
                     )
 
+            # Retrieve upstream branch or raise exception if not found
+            upstream_branch = self._get_upstream_branch()
+
             self.add_output(
                 self.indent_spaces
                 + f"[INFO] Applying update strategy: {strategy} from "
-                f"origin/{self.current_branch}\n"
+                f"{upstream_branch}\n"
             )
 
             if strategy == "rebase":
-                self._run(["git", "rebase"] +
-                          [f"origin/{self.current_branch}"])
+                self._run(["git", "rebase"] + [upstream_branch])
             elif strategy == "reset":
-                self._run(["git", "reset", "--hard",
-                           f"origin/{self.current_branch}"])
+                self._run(["git", "reset", "--hard", upstream_branch])
             else:
                 self._run(["git", "merge"] + self["git_merge_args"] +
-                          [f"origin/{self.current_branch}"])
+                          [upstream_branch])
 
             git_ref_after_update = self._git_ref(cwd=self.git_local_dir)
             if commit_ref_head != git_ref_after_update:
@@ -491,6 +518,15 @@ class BatchFetchGit(TaskBatchFetch):
             update_remote_origin = True
 
         if update_remote_origin:
+            # We must fetch the upstream branch BEFORE updating the remote,
+            # because removing the remote drops the tracking configuration.
+            upstream_branch = None
+            if self.current_branch:
+                try:
+                    upstream_branch = self._get_upstream_branch()
+                except BatchFetchError:
+                    pass
+
             # Update remote
             try:
                 self._git_set_remote_url(correct_origin_url)
@@ -501,17 +537,20 @@ class BatchFetchGit(TaskBatchFetch):
             # Get the current branch
             if self.current_branch:
                 try:
+                    target_upstream = (upstream_branch if upstream_branch
+                                       else f"origin/{self.current_branch}")
+
                     self.add_output(
                         self.indent_spaces
                         + "[INFO] Git fetch origin reason: "
                         f"we need to set the upstream "
-                        f"origin to {self.current_branch}"
+                        f"origin to {target_upstream}"
                         "\n"
                     )
                     self._git_fetch_origin()
 
                     cmd = ["git", "branch",
-                           f"--set-upstream-to=origin/{self.current_branch}"]
+                           f"--set-upstream-to={target_upstream}"]
                     _, _ = self._run(cmd)
                     # TODO: handle errors
                 except subprocess.CalledProcessError as err:
