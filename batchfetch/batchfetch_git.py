@@ -26,7 +26,7 @@ import shutil
 import subprocess
 import textwrap
 from pathlib import Path, PurePosixPath
-from typing import Any, Union
+from typing import Any
 
 from schema import Optional, Or
 
@@ -204,9 +204,9 @@ class BatchFetchGit(TaskBatchFetch):
         except IndexError:
             return ""
 
-    def _run(self, cmd: Union[list[str], str],
-             cwd: Union[None, os.PathLike, str] = None,
-             env: Union[None, dict[str, str]] = None,
+    def _run(self, cmd: list[str] | str,
+             cwd: None | os.PathLike, str = None,
+             env: None | dict[str, str] = None,
              **kwargs: Any) -> tuple[list[str], list[str]]:
         """Execute a command and return stdout and stderr.
 
@@ -252,7 +252,7 @@ class BatchFetchGit(TaskBatchFetch):
             f"branch for '{self.current_branch}'."
         )
 
-    def _git_ref(self, cwd: Union[None, Path] = None) -> str:
+    def _git_ref(self, cwd: None | Path = None) -> str:
         """Get the commit revision of HEAD.
 
         The command will fail if the branch is detached.

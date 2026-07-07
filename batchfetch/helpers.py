@@ -25,7 +25,7 @@ import os
 import shlex
 from pathlib import Path
 from subprocess import PIPE, CalledProcessError, Popen, list2cmdline
-from typing import Any, Union
+from typing import Any
 
 
 def md5sum(filename: os.PathLike) -> str:
@@ -44,7 +44,7 @@ def md5sum(filename: os.PathLike) -> str:
     return md5.hexdigest()
 
 
-def run_simple(cmd: Union[list[str], str],
+def run_simple(cmd: list[str] | str,
                **kwargs: Any) -> tuple[list[str], list[str]]:
     """Execute a command and return stdout and stderr.
 
@@ -73,7 +73,7 @@ def run_simple(cmd: Union[list[str], str],
     return (stdout_lines, stderr_lines)
 
 
-def run_indent_str(cmd: Union[list[str], str], **kwargs: Any) -> str:
+def run_indent_str(cmd: list[str] | str, **kwargs: Any) -> str:
     """Execute a command and return its stdout output as a single string.
 
     Executes a command and returns its stdout output as a single string with
@@ -100,7 +100,7 @@ def indent_raw_output(raw_output: list[str], spaces: int = 4) -> list[str]:
     return [indentation + line for line in raw_output]
 
 
-def run_indent(cmd: Union[list[str], str], spaces: int = 4,
+def run_indent(cmd: list[str] | str, spaces: int = 4,
                **kwargs: Any) -> tuple[list[str], list[str]]:
     """Execute a command and return its stdout and stderr output indented.
 
