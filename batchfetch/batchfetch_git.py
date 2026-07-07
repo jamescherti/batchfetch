@@ -275,6 +275,7 @@ class BatchFetchGit(TaskBatchFetch):
         except (IndexError, subprocess.CalledProcessError):
             # Not a symbolic ref
             self.current_branch = None
+            self.is_branch = False
 
         if self.current_branch:
             try:
@@ -524,6 +525,8 @@ class BatchFetchGit(TaskBatchFetch):
             needs_checkout = False
             if self.current_branch != self["revision"]:
                 if is_branch:
+                    needs_checkout = True
+                elif self.current_branch is not None:
                     needs_checkout = True
                 elif git_ref_after_merge != git_ref_branch and \
                         self["revision"] not in git_tags:
