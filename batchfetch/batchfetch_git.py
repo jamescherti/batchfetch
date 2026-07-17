@@ -152,6 +152,10 @@ class BatchFetchGit(TaskBatchFetch):
                 self._exec_before(cwd=self.git_local_dir)
 
                 if not self["revision"]:
+                    # Synchronize the local origin/HEAD with the remote repository
+                    self._run(["git", "remote", "set-head", "origin", "-a"],
+                              cwd=self.git_local_dir)
+
                     # Attempt to read the default branch from local origin/HEAD
                     sym_ref = self._run_get_firstline(
                         ["git", "symbolic-ref", "--short",
@@ -205,8 +209,8 @@ class BatchFetchGit(TaskBatchFetch):
             return ""
 
     def _run(self, cmd: list[str] | str,
-             cwd: None | os.PathLike, str = None,
-             env: None | dict[str, str] = None,
+             cwd: Path | str | None = None,
+             env: dict[str, str] | None = None,
              **kwargs: Any) -> tuple[list[str], list[str]]:
         """Execute a command and return stdout and stderr.
 
@@ -219,9 +223,9 @@ class BatchFetchGit(TaskBatchFetch):
         :param kwargs: Additional keyword arguments for Popen.
         :return: Tuple containing two lists: stdout lines and stderr lines.
         """
-        if not cwd:
+        if cwd is None:
             cwd = self.git_local_dir
-        if not env:
+        if env is None:
             env = self.env
         return run_simple(cmd=cmd, env=env, cwd=cwd, **kwargs)
 
@@ -252,7 +256,7 @@ class BatchFetchGit(TaskBatchFetch):
             f"branch for '{self.current_branch}'."
         )
 
-    def _git_ref(self, cwd: None | Path = None) -> str:
+    def _git_ref(self, cwd: Path | None = None) -> str:
         """Get the commit revision of HEAD.
 
         The command will fail if the branch is detached.
