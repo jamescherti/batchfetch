@@ -141,47 +141,54 @@ class BatchFetchGit(TaskBatchFetch):
 
             # Update
             if self.git_local_dir.is_dir():
-                do_git_fetch = self["git_pull"]
-
-                # Pre exec
-                if do_git_fetch:
+                if self["git_pull"]:
+                    # Pre exec
                     self._update_current_branch_name()
+                    self._repo_fix_remote_origin()
+                    self._repo_fix_remotes()
+                else:
+                    if not is_clone:
+                        self.add_output(self.indent_spaces +
+                                        "[INFO] git_pull is False. Skipping "
+                                        "repository updates.\n")
 
-                self._repo_fix_remote_origin()
-                self._repo_fix_remotes()
                 self._exec_before(cwd=self.git_local_dir)
 
-                if not self["revision"]:
-                    # Synchronize the local origin/HEAD with the remote repository
-                    self._run(["git", "remote", "set-head", "origin", "-a"],
-                              cwd=self.git_local_dir)
-
-                    # Attempt to read the default branch from local origin/HEAD
-                    sym_ref = self._run_get_firstline(
-                        ["git", "symbolic-ref", "--short",
-                         "refs/remotes/origin/HEAD"]
-                    ).strip()
-                    if sym_ref.startswith("origin/"):
-                        self.values["revision"] = \
-                            sym_ref.split("origin/", 1)[1]
-
+                if self["git_pull"]:
                     if not self["revision"]:
-                        raise BatchFetchError(
-                            "Unable to determine the default origin branch"
+                        # Synchronize the local origin/HEAD with the remote
+                        # repository
+                        self._run(["git", "remote", "set-head",
+                                   "origin", "-a"],
+                                  cwd=self.git_local_dir)
+
+                        # Attempt to read the default branch from local
+                        # origin/HEAD
+                        sym_ref = self._run_get_firstline(
+                            ["git", "symbolic-ref", "--short",
+                             "refs/remotes/origin/HEAD"]
+                        ).strip()
+                        if sym_ref.startswith("origin/"):
+                            self.values["revision"] = \
+                                sym_ref.split("origin/", 1)[1]
+
+                        if not self["revision"]:
+                            raise BatchFetchError(
+                                "Unable to determine the default origin branch"
+                            )
+
+                        self.add_output(
+                            self.indent_spaces +
+                            "[INFO] Default revision resolved to: '" +
+                            self["revision"] + "'\n"
                         )
 
-                    self.add_output(self.indent_spaces +
-                                    "[INFO] Default revision resolved to: '" +
-                                    self["revision"] + "'\n")
-
-                git_fetch_done = False
-                if do_git_fetch:
                     git_fetch_done = self._repo_fetch()
 
-                self._repo_fix_branch()
+                    self._repo_fix_branch()
 
-                if git_fetch_done:
-                    self._git_apply_update_strategy()
+                    if git_fetch_done:
+                        self._git_apply_update_strategy()
 
                 self._exec_after(cwd=self.git_local_dir)
         except BatchFetchError as err:
