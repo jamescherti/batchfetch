@@ -67,7 +67,7 @@ class BatchFetchGit(TaskBatchFetch):
             # Same as global options
             Optional("git_clone_args"): [str],
             Optional("git_merge_args"): [str],
-            Optional("git_pull"): bool,
+            Optional("git_update"): bool,
             Optional("git_update_strategy"): Or("merge", "rebase", "reset"),
         })
 
@@ -75,14 +75,14 @@ class BatchFetchGit(TaskBatchFetch):
             # Global options
             Optional("git_clone_args"): [str],
             Optional("git_merge_args"): [str],
-            Optional("git_pull"): bool,
+            Optional("git_update"): bool,
             Optional("git_update_strategy"): Or("merge", "rebase", "reset"),
         })
 
         # Data
         self.global_options_values.update({"git_clone_args": [],
                                            "git_merge_args": [],
-                                           "git_pull": True})
+                                           "git_update": True})
 
         self.task_default_values.update({
             self.main_key: "",
@@ -141,7 +141,7 @@ class BatchFetchGit(TaskBatchFetch):
 
             # Update
             if self.git_local_dir.is_dir():
-                if self["git_pull"]:
+                if self["git_update"]:
                     # Pre exec
                     self._update_current_branch_name()
                     self._repo_fix_remote_origin()
@@ -149,12 +149,12 @@ class BatchFetchGit(TaskBatchFetch):
                 else:
                     if not is_clone:
                         self.add_output(self.indent_spaces +
-                                        "[INFO] git_pull is False. Skipping "
+                                        "[INFO] git_update is False. Skipping "
                                         "repository updates.\n")
 
                 self._exec_before(cwd=self.git_local_dir)
 
-                if self["git_pull"]:
+                if self["git_update"]:
                     if not self["revision"]:
                         # Synchronize the local origin/HEAD with the remote
                         # repository
@@ -330,7 +330,7 @@ class BatchFetchGit(TaskBatchFetch):
     def _repo_fetch(self) -> bool:
         """Fetch the remote repository and determine if an update is needed."""
         # Merge
-        do_git_fetch = self["git_pull"]
+        do_git_fetch = self["git_update"]
 
         try:
             # Check if the revision such as

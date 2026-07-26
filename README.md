@@ -146,7 +146,7 @@ Batchfetch allows you to define advanced options for interacting with Git reposi
 * `git_clone_args`: A list of extra arguments to pass to `git clone`.
 * `git_merge_args`: A list of extra arguments to pass to `git merge`.
 * `git_update_strategy`: Specifies how updates should be applied. Valid options are `"merge"` (default), `"rebase"`, or `"reset"`.
-* `git_pull`: A boolean indicating whether to run Git pull/fetch operations. Set to `false` to disable updating entirely (default: `true`).
+* `git_update`: A boolean indicating whether to run Git pull/fetch operations. Set to `false` to disable updating entirely (default: `true`).
 
 Here is an example demonstrating both global and local configurations:
 
@@ -161,7 +161,7 @@ options:
 
 tasks:
   - git: https://github.com/jamescherti/compile-angel.el
-    git_pull: false # Do not attempt to update this repo
+    git_update: false # Do not attempt to update this repo
 
   - git: https://github.com/jamescherti/outline-indent.el
     # Override global strategy specifically for this task
