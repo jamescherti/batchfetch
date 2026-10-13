@@ -1,7 +1,5 @@
 # Batchfetch - Efficiently clone or pull multiple Git repositories in parallel
 
-## Introduction
-
 [Batchfetch](https://github.com/jamescherti/batchfetch) is a command-line tool to clone, fetch, and merge multiple Git repositories simultaneously. With Batchfetch, you no longer need to manually manage each repository one by one. It automates the tedious aspects of repository management.
 
 But why use Batchfetch? Because it is extremely fast, cloning repositories quickly by running Git operations in parallel. It intelligently detects whether a `git fetch` is needed, further speeding up the process of downloading data from repositories. Additionally, it allows specifying the revision (for Git), ensuring that the cloned repository matches the exact version you require.
