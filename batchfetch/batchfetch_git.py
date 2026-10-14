@@ -142,7 +142,6 @@ class BatchFetchGit(TaskBatchFetch):
             if not self["delete"]:
                 self._verify_git_repo()
 
-            if not self["delete"]:
                 if self["git_update"]:
                     # Pre exec
                     self._update_current_branch_name()
@@ -350,7 +349,7 @@ class BatchFetchGit(TaskBatchFetch):
                 "not a Git repository\n"
             )
             self.set_error(True)
-        elif self.git_local_dir.is_dir():
+        else:
             shutil.rmtree(str(self.git_local_dir))
             self.add_output(self.indent_spaces
                             + f"[INFO] Deleted: '{self.git_local_dir}'")
