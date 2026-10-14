@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 # Copyright (C) 2024-2026 James Cherti
 # URL: https://github.com/jamescherti/batchfetch
@@ -31,6 +30,8 @@ from schema import Optional, Or
 
 from .batchfetch_base import BatchFetchError, TaskBatchFetch
 from .helpers import run_simple
+
+logger = logging.getLogger(__name__)
 
 
 class GitRevisionDoesNotExist(Exception):
@@ -104,8 +105,7 @@ class BatchFetchGit(TaskBatchFetch):
         if "path" not in self.values:
             path = PurePosixPath(self.values[self.main_key]).name
             # Remove .git from the file name
-            if path.endswith(".git"):
-                path = path[:-4]
+            path = path.removesuffix(".git")
             self.values["path"] = path
 
     def update(self) -> dict[str, Any]:
@@ -374,8 +374,8 @@ class BatchFetchGit(TaskBatchFetch):
             # Check if the revision such as
             _, _ = self._run(["git", "cat-file", "-e", self["revision"]])
         except subprocess.CalledProcessError as err:
-            logging.debug("Ignoring subprocess error checking cat-file: %s",
-                          err)
+            logger.debug("Ignoring subprocess error checking cat-file: %s",
+                         err)
             do_git_fetch = True
             self.add_output(
                 self.indent_spaces
@@ -397,7 +397,7 @@ class BatchFetchGit(TaskBatchFetch):
                     + "\n")
                 do_git_fetch = True
             except subprocess.CalledProcessError as err:
-                logging.debug(
+                logger.debug(
                     "Ignoring subprocess error checking show-ref: %s",
                     err,
                 )
@@ -433,12 +433,12 @@ class BatchFetchGit(TaskBatchFetch):
             except KeyError:
                 strategy = "merge"
 
-            if strategy in ("rebase", "reset"):
-                if not self._is_working_tree_clean():
-                    raise BatchFetchError(
-                        f"Working tree is not clean. Aborting {strategy} to "
-                        "prevent data loss."
-                    )
+            if strategy in ("rebase", "reset") \
+                    and not self._is_working_tree_clean():
+                raise BatchFetchError(
+                    f"Working tree is not clean. Aborting {strategy} to "
+                    "prevent data loss."
+                )
 
             # Retrieve upstream branch or raise exception if not found
             upstream_branch = self._get_upstream_branch()
@@ -572,13 +572,10 @@ class BatchFetchGit(TaskBatchFetch):
                                           "does not exist.") from err
 
             needs_checkout = False
-            if self.current_branch != self["revision"]:
-                if is_branch:
-                    needs_checkout = True
-                elif self.current_branch is not None:
-                    needs_checkout = True
-                elif git_ref_after_merge != git_ref_branch and \
-                        self["revision"] not in git_tags:
+            if self.current_branch != self["revision"]:  # noqa: SIM102
+                if (is_branch or self.current_branch is not None or
+                    (git_ref_after_merge != git_ref_branch and
+                     self["revision"] not in git_tags)):
                     needs_checkout = True
 
             if needs_checkout:
