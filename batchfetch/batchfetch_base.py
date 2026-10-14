@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 # Copyright (C) 2024-2026 James Cherti
 # URL: https://github.com/jamescherti/batchfetch
@@ -150,8 +149,8 @@ class TaskBatchFetch(TaskBase):
 
     def _local_task_exec(self, *args: Any, **kwargs: Any) -> None:
         """Execute a local task command and capture its output."""
-        stdout = run_indent_str(env=self.env, spaces=self.indent,
-                                *args, **kwargs)
+        stdout = run_indent_str(*args, env=self.env, spaces=self.indent,
+                                **kwargs)
         if not stdout.endswith("\n"):
             stdout += "\n"
         self.add_output(stdout)
@@ -163,14 +162,12 @@ class TaskBatchFetch(TaskBase):
             return
 
         # Global
-        cmd = self.global_options_values["exec_before"] \
-            if "exec_before" in self.global_options_values else None
+        cmd = self.global_options_values.get("exec_before", None)
         if cmd:
             self._local_task_exec(cmd, cwd=str(cwd))
 
         # Local
-        cmd = self._item_values["exec_before"] if "exec_before" \
-            in self._item_values else None
+        cmd = self._item_values.get("exec_before", None)
         if cmd:
             self._local_task_exec(cmd, cwd=str(cwd))
 
@@ -181,14 +178,12 @@ class TaskBatchFetch(TaskBase):
             return
 
         # Local
-        cmd = self.global_options_values["exec_after"] \
-            if "exec_after" in self.global_options_values else None
+        cmd = self.global_options_values.get("exec_after", None)
         if cmd:
             self._local_task_exec(cmd, cwd=str(cwd))
 
         # Local
-        cmd = self._item_values["exec_after"] if "exec_after" \
-            in self._item_values else None
+        cmd = self._item_values.get("exec_after", None)
         if cmd:
             self._local_task_exec(cmd, cwd=str(cwd))
 
