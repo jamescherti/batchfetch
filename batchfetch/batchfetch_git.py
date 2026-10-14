@@ -142,7 +142,7 @@ class BatchFetchGit(TaskBatchFetch):
             if not self["delete"]:
                 self._verify_git_repo()
 
-            if not self["delete"] and self.git_local_dir.is_dir():
+            if not self["delete"]:
                 if self["git_update"]:
                     # Pre exec
                     self._update_current_branch_name()
