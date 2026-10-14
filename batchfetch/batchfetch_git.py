@@ -21,7 +21,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import shutil
 import subprocess
 import textwrap
@@ -140,7 +139,10 @@ class BatchFetchGit(TaskBatchFetch):
                 self._repo_clone()
 
             # Update
-            if self.git_local_dir.is_dir():
+            if not self["delete"]:
+                self._verify_git_repo()
+
+            if not self["delete"] and self.git_local_dir.is_dir():
                 if self["git_update"]:
                     # Pre exec
                     self._update_current_branch_name()
@@ -214,6 +216,43 @@ class BatchFetchGit(TaskBatchFetch):
             return stdout[0]
         except IndexError:
             return ""
+
+    def _verify_git_repo(self) -> None:
+        """Verify that git_local_dir is the top-level of a Git repository."""
+        if not self.git_local_dir.is_dir():
+            raise BatchFetchError(
+                f"The path '{self.git_local_dir}' is not a directory."
+            )
+
+        if not self.git_local_dir.joinpath(".git").is_dir():
+            raise BatchFetchError(
+                f"The directory '{self.git_local_dir}' does not contain a "
+                "'.git' directory."
+            )
+
+        try:
+            stdout, _ = self._run(["git", "rev-parse", "--show-toplevel"],
+                                  cwd=self.git_local_dir)
+            top_level = Path(stdout[0].strip())
+        except (subprocess.CalledProcessError, IndexError) as err:
+            raise BatchFetchError(
+                f"The directory '{self.git_local_dir}' is not a Git "
+                "repository."
+            ) from err
+
+        try:
+            is_same_dir = self.git_local_dir.samefile(top_level)
+        except OSError as err:
+            raise BatchFetchError(
+                f"Failed to compare '{self.git_local_dir}' with Git top-level "
+                f"'{top_level}': {err}"
+            ) from err
+
+        if not is_same_dir:
+            raise BatchFetchError(
+                f"The directory '{self.git_local_dir}' is not the top-level "
+                f"of a Git repository (top-level: '{top_level}')."
+            )
 
     def _run(self, cmd: list[str] | str,
              cwd: Path | str | None = None,
