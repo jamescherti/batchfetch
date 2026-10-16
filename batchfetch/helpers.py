@@ -44,8 +44,7 @@ def md5sum(filename: os.PathLike) -> str:
     return md5.hexdigest()
 
 
-def run_simple(cmd: list[str] | str,
-               **kwargs: Any) -> tuple[list[str], list[str]]:
+def run_simple(cmd: list[str] | str, **kwargs: Any) -> tuple[list[str], list[str]]:
     """Execute a command and return stdout and stderr.
 
     Executes a command and returns stdout and stderr as separate lists of
@@ -57,18 +56,16 @@ def run_simple(cmd: list[str] | str,
     """
     full_cmd = shlex.split(cmd) if isinstance(cmd, str) else cmd
 
-    with Popen(full_cmd, stdout=PIPE, stderr=PIPE, text=True,
-               **kwargs) as process:
+    with Popen(full_cmd, stdout=PIPE, stderr=PIPE, text=True, **kwargs) as process:
         stdout, stderr = process.communicate()
 
     stdout_lines = stdout.splitlines()
     stderr_lines = stderr.splitlines()
 
     if process.returncode != 0:
-        raise CalledProcessError(returncode=process.returncode,
-                                 cmd=cmd,
-                                 output=stdout,
-                                 stderr=stderr)
+        raise CalledProcessError(
+            returncode=process.returncode, cmd=cmd, output=stdout, stderr=stderr
+        )
 
     return (stdout_lines, stderr_lines)
 
@@ -96,12 +93,13 @@ def indent_raw_output(raw_output: list[str], spaces: int = 4) -> list[str]:
     :param spaces: Number of spaces to indent each line.
     :return: A new list of strings with each line indented as specified.
     """
-    indentation = ' ' * spaces
+    indentation = " " * spaces
     return [indentation + line for line in raw_output]
 
 
-def run_indent(cmd: list[str] | str, spaces: int = 4,
-               **kwargs: Any) -> tuple[list[str], list[str]]:
+def run_indent(
+    cmd: list[str] | str, spaces: int = 4, **kwargs: Any
+) -> tuple[list[str], list[str]]:
     """Execute a command and return its stdout and stderr output indented.
 
     Executes a command and returns its stdout and stderr output, both indented.
@@ -114,8 +112,9 @@ def run_indent(cmd: list[str] | str, spaces: int = 4,
     """
     cmd = shlex.split(cmd) if isinstance(cmd, str) else cmd
     stdout, stderr = run_simple(cmd=cmd, **kwargs)
-    stdout = indent_raw_output([f"[RUN] {list2cmdline(cmd)}"], spaces) + \
-        indent_raw_output(stdout, spaces + spaces)
+    stdout = indent_raw_output(
+        [f"[RUN] {list2cmdline(cmd)}"], spaces
+    ) + indent_raw_output(stdout, spaces + spaces)
     stderr = indent_raw_output(stderr, spaces)
 
     return (stdout, stderr)
@@ -128,8 +127,10 @@ def collect_parent_dirs(base_dir: Path, directory: Path) -> set[Path]:
     """
     parents: set[Path] = set()
 
-    for dir_path, base_path in ((directory.resolve(), base_dir.resolve()),
-                                (directory.absolute(), base_dir.absolute())):
+    for dir_path, base_path in (
+        (directory.resolve(), base_dir.resolve()),
+        (directory.absolute(), base_dir.absolute()),
+    ):
         try:
             # Check if dir is inside base_dir
             dir_path.relative_to(base_path)
