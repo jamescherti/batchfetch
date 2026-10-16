@@ -44,7 +44,6 @@ from .helpers import collect_parent_dirs
 class BatchFetchCli:
     """Command-line-interface that downloads."""
 
-    # pylint: disable=too-many-positional-arguments
     def __init__(
         self,
         max_workers: int,
@@ -201,7 +200,7 @@ class BatchFetchCli:
 
     # pylint: disable=too-many-branches
     # pylint: disable=too-many-statements
-    def run_tasks(self) -> bool:
+    def run_tasks(self) -> bool:  # noqa: PLR0912, PLR0915
         """Execute all configured tasks in parallel using a thread pool."""
         failed = []
         error = False
@@ -291,14 +290,14 @@ class BatchFetchCli:
                 print("Failed.")
 
             return False
-        else:
-            if self.check_untracked and not self.targets:
-                self._find_untracked_paths()
 
-            if num_success == 0:
-                print("Nothing to do.")
-            elif not self.verbose:
-                print("Success.")
+        if self.check_untracked and not self.targets:
+            self._find_untracked_paths()
+
+        if num_success == 0:
+            print("Nothing to do.")
+        elif not self.verbose:
+            print("Success.")
 
         return True
 
