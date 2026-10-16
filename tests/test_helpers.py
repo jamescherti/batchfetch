@@ -26,31 +26,37 @@ SCRIPT_RUN_SIMPLE = DATA_PATH / "test-run_simple.sh"
 TEST_MD5SUM_FILE = DATA_PATH / "test-md5sum.txt"
 
 
-def test_md5sum():
-    md5sum = helpers.md5sum(TEST_MD5SUM_FILE)
-    assert md5sum == "f31e127edc87a6aa2eb01b7d94d2ec58"
+def test_md5sum() -> None:
+    """Test the md5sum helper function."""
+    md5_hash = helpers.md5sum(TEST_MD5SUM_FILE)
+    assert md5_hash == "f31e127edc87a6aa2eb01b7d94d2ec58"
 
 
-def test_run_simple():
+def test_run_simple() -> None:
+    """Test the run_simple helper function."""
     # Stdout
     stdout_lines, stderr_lines = helpers.run_simple(str(SCRIPT_RUN_SIMPLE))
-    assert stdout_lines == ['Test 1.',
-                            'Test 2.',
-                            'Test 3.']
-    assert stderr_lines == ['Test 3.']
+    assert stdout_lines == [
+        "Test 1.",
+        "Test 2.",
+        "Test 3.",
+    ]
+    assert stderr_lines == ["Test 3."]
 
 
-def test_indent_raw_output():
-    list_str = \
-        helpers.indent_raw_output(["Test 1.", "Test 2."])
-
+def test_indent_raw_output() -> None:
+    """Test the indent_raw_output helper function."""
+    list_str = helpers.indent_raw_output(["Test 1.", "Test 2."])
     assert list_str == ["    Test 1.", "    Test 2."]
 
 
-def test_run_indent():
+def test_run_indent() -> None:
+    """Test the run_indent helper function."""
     stdout_lines, stderr_lines = helpers.run_indent(str(SCRIPT_RUN_SIMPLE))
-    assert stdout_lines == [f'    [RUN] {str(SCRIPT_RUN_SIMPLE)}',
-                            '        Test 1.',
-                            '        Test 2.',
-                            '        Test 3.']
-    assert stderr_lines == ['    Test 3.']
+    assert stdout_lines == [
+        f"    [RUN] {SCRIPT_RUN_SIMPLE}",
+        "        Test 1.",
+        "        Test 2.",
+        "        Test 3.",
+    ]
+    assert stderr_lines == ["    Test 3."]
