@@ -38,7 +38,7 @@ def md5sum(filename: os.PathLike) -> str:
         str: The MD5 checksum of the file.
     """
     md5 = hashlib.md5()
-    with open(filename, "rb") as file:
+    with Path(filename).open("rb") as file:
         for chunk in iter(lambda: file.read(4096), b""):
             md5.update(chunk)
     return md5.hexdigest()
@@ -137,8 +137,9 @@ def collect_parent_dirs(base_dir: Path, directory: Path) -> set[Path]:
         except ValueError:
             continue
 
-        while dir_path != base_path:
-            parents.add(dir_path)
-            dir_path = dir_path.parent
+        current_dir = dir_path
+        while current_dir != base_path:
+            parents.add(current_dir)
+            current_dir = current_dir.parent
 
     return parents
