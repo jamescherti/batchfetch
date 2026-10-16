@@ -40,9 +40,8 @@
             :formatEnabled t
             :lineLength 88
             ;; I: Sort imports
-            ;; :extendSelect ["I"]
-            ;; :format ["I"]
-            )
+            :extendSelect ["I"]
+            :format ["I"])
 
            :pylsp_mypy
            (;; Type checking (Requires: pylsp-mypy)
@@ -81,23 +80,23 @@
             :enabled t
 
             ;; Adds class objects as a separate completion item.
-            :include_class_objects t
+            ;; :include_class_objects t
 
             ;; Adds function objects as a separate completion item.
-            :include_function_objects t
+            ;; :include_function_objects t
 
             ;; Auto-completes methods and classes with tabstops for each
             ;; parameter.
-            :include_params t
+            ;; :include_params t
 
             ;; How many labels and snippets (at most) should be resolved?
-            :resolve_at_most 25
+            ;; :resolve_at_most 25
 
             ;; Resolve documentation and detail eagerly.
-            :eager :json-false
+            ;; :eager :json-false
 
             ;; Disable fuzzy when requesting autocomplete.
-            :fuzzy :json-false
+            ;; :fuzzy :json-false
             )
 
            ;; :jedi
