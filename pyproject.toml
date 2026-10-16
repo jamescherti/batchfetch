@@ -24,7 +24,7 @@ name = "batchfetch"
 version = "1.4.3"
 description = "Efficiently clone and pull multiple Git repositories."
 readme = "README.md"
-requires-python = ">=3.6, <4"
+requires-python = ">=3.8"
 license = {text = "GPLv3"}
 authors = [
   {name = "James Cherti"},
