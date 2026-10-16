@@ -111,7 +111,7 @@ class BatchFetchCli:
         """Load and parse the batchfetch YAML configuration file."""
         # pylint: disable=too-many-try-statements
         try:
-            with open(path, "r", encoding="utf-8") as fhandler:
+            with path.open(encoding="utf-8") as fhandler:
                 yaml_dict: Any = yaml.load(fhandler, Loader=yaml.FullLoader)
                 if not isinstance(yaml_dict, dict):
                     print(f"Error: Invalid format: {yaml_dict}.", file=sys.stderr)
@@ -137,14 +137,14 @@ class BatchFetchCli:
                     untracked_paths = [untracked_paths]
 
                 if untracked_paths:
-                    for ignore_untracked_path in untracked_paths:
+                    for untracked_str in untracked_paths:
                         # Absolute
-                        ignore_untracked_path = Path(ignore_untracked_path).absolute()
-                        self.ignore_untracked.add(ignore_untracked_path)
+                        abs_untracked = Path(untracked_str).absolute()
+                        self.ignore_untracked.add(abs_untracked)
 
                         # Resolve
-                        ignore_untracked_path = ignore_untracked_path.resolve()
-                        self.ignore_untracked.add(ignore_untracked_path)
+                        resolved_untracked = abs_untracked.resolve()
+                        self.ignore_untracked.add(resolved_untracked)
 
                 self._loads(dict(yaml_dict))
         except OSError as err:
@@ -308,7 +308,7 @@ class BatchFetchCli:
         cwd = Path.cwd()
         local_ignore_untracked: set[Path] = set()
 
-        for tracked_dir, tracked_filenames in self.tracked_paths.items():
+        for tracked_dir in self.tracked_paths:
             self.ignore_untracked |= {tracked_dir}
             parents = collect_parent_dirs(cwd, tracked_dir)
             local_ignore_untracked |= parents
@@ -466,7 +466,7 @@ def command_line_interface() -> None:
         )
 
         colorama.init()
-        setproctitle(subprocess.list2cmdline([Path(sys.argv[0]).name] + sys.argv[1:]))
+        setproctitle(subprocess.list2cmdline([Path(sys.argv[0]).name, *sys.argv[1:]]))
 
         args = parse_args()
         file = Path(args.file)
