@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #
 # Copyright (C) 2024-2026 James Cherti
 # URL: https://github.com/jamescherti/batchfetch
