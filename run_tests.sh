@@ -15,9 +15,17 @@
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <https://www.gnu.org/licenses/>.
 #
-cd "$(dirname "${BASH_SOURCE[0]}")"
-export PYTHONPATH="$(pwd)"
-exec pytest -v -v --cov=batchfetch --cov=tests \
+
+set -u
+set -e
+
+SCRIPT_DIR=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
+cd "$SCRIPT_DIR"
+
+export PYTHONPATH
+PYTHONPATH="$(pwd)"
+
+exec pytest -p no:libtmux -v -v --cov=batchfetch --cov=tests \
   --cov-report=term \
   --cov-report=html:htmlcov \
   tests/test_*py
