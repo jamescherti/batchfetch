@@ -103,9 +103,11 @@ class TaskBatchFetch(TaskBase):
 
     def __init__(self, data: dict[str, Any], options: dict[str, Any]) -> None:
         """Initialize the batchfetch task plugin."""
-        new_options: dict[str, Any] = {"exec_before": [],
-                                       "exec_after": [],
-                                       "ignore_untracked": []}
+        new_options: dict[str, Any] = {
+            "exec_before": [],
+            "exec_after": [],
+            "ignore_untracked": [],
+        }
         new_options.update(options)
         options = new_options
 
@@ -124,10 +126,8 @@ class TaskBatchFetch(TaskBase):
         self.task_schema: dict[Any, Any] = {
             Optional("path"): str,
             Optional("delete"): bool,
-
             Optional("exec_before"): Or([str], str),
             Optional("exec_after"): Or([str], str),
-
             # Global options (unused locally)
             Optional("ignore_untracked"): Or([str], str),
         }
@@ -149,8 +149,7 @@ class TaskBatchFetch(TaskBase):
 
     def _local_task_exec(self, *args: Any, **kwargs: Any) -> None:
         """Execute a local task command and capture its output."""
-        stdout = run_indent_str(*args, env=self.env, spaces=self.indent,
-                                **kwargs)
+        stdout = run_indent_str(*args, env=self.env, spaces=self.indent, **kwargs)
         if not stdout.endswith("\n"):
             stdout += "\n"
         self.add_output(stdout)
