@@ -1,4 +1,10 @@
 ;;; Directory Local Variables for a Python project -*- no-byte-compile: t; -*-
+;; Requires:
+;;   - python-lsp-server: https://github.com/python-lsp/python-lsp-server
+;;   - ruff: https://github.com/astral-sh/ruff
+;;   - python-lsp-ruff: https://github.com/python-lsp/python-lsp-ruff
+;;   - pylint: https://github.com/pylint-dev/pylint
+;;   - pylsp-mypy: https://github.com/python-lsp/pylsp-mypy
 
 ((nil . ((sentence-end-double-space . nil)
          (require-final-newline . t)))
@@ -11,19 +17,20 @@
       . (:pylsp
          (:plugins
           (:ruff
-           (;; Ruff plugin
+           (;; Ruff plugin (Requires: ruff and python-lsp-ruff)
             :enabled t
             :formatEnabled t
             ;; I: Sort imports
-            :extendSelect ["I"]
-            :format ["I"])
+            ;; :extendSelect ["I"]
+            ;; :format ["I"]
+            )
 
-           ;; :pylsp_mypy
-           ;; (;; Type checking (Requires: pylsp-mypy)
-           ;;  :enabled t
-           ;;  ;; Disabling live mode prevents type-checking updates on every edit.
-           ;;  ;; Save the file to refresh mypy diagnostics.
-           ;;  :live_mode :json-false)
+           :pylsp_mypy
+           (;; Type checking (Requires: pylsp-mypy)
+            :enabled t
+            ;; Disabling live mode prevents type-checking updates on every edit.
+            ;; Save the file to refresh mypy diagnostics.
+            :live_mode :json-false)
 
            :pylint (:enabled t)
            :flake8 (:enabled :json-false)
