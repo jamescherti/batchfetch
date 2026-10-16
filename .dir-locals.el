@@ -13,14 +13,17 @@
           (:ruff
            (;; Ruff plugin
             :enabled t
-            :formatEnabled t)
+            :formatEnabled t
+            ;; I: Sort imports
+            :extendSelect ["I"]
+            :format ["I"])
 
-           :pylsp_mypy
-           (;; Type checking (Requires: pylsp-mypy)
-            :enabled t
-            ;; Disabling live mode prevents type-checking updates on every edit.
-            ;; Save the file to refresh mypy diagnostics.
-            :live_mode :json-false)
+           ;; :pylsp_mypy
+           ;; (;; Type checking (Requires: pylsp-mypy)
+           ;;  :enabled t
+           ;;  ;; Disabling live mode prevents type-checking updates on every edit.
+           ;;  ;; Save the file to refresh mypy diagnostics.
+           ;;  :live_mode :json-false)
 
            :pylint (:enabled t)
            :flake8 (:enabled :json-false)
