@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import shutil
 import subprocess
@@ -145,6 +146,7 @@ class BatchFetchGit(TaskBatchFetch):
                 self._repo_clone()
 
             # Update
+            # TODO elif?
             if not self["delete"]:
                 self._verify_git_repo()
 
@@ -153,12 +155,11 @@ class BatchFetchGit(TaskBatchFetch):
                     self._update_current_branch_name()
                     self._repo_fix_remote_origin()
                     self._repo_fix_remotes()
-                else:
-                    if not is_clone:
-                        self.add_output(
-                            self.indent_spaces + "[INFO] git_update is False. Skipping "
-                            "repository updates.\n"
-                        )
+                elif not is_clone:
+                    self.add_output(
+                        self.indent_spaces + "[INFO] git_update is False. Skipping "
+                        "repository updates.\n"
+                    )
 
                 self._exec_before(cwd=self.git_local_dir)
 
@@ -347,7 +348,7 @@ class BatchFetchGit(TaskBatchFetch):
             self.is_branch = False
 
         if self.current_branch:
-            try:
+            with contextlib.suppress(GitRevisionDoesNotExist):
                 # If the tag is annotated, it points to a tag object, not
                 # directly to a commit. You need to resolve it to the
                 # commit it points to. Using `git rev-parse
@@ -356,8 +357,6 @@ class BatchFetchGit(TaskBatchFetch):
                     0
                 ]
                 self.branch_commit_ref = commit_ref.strip()
-            except GitRevisionDoesNotExist:
-                pass
 
     def _repo_delete(self) -> None:
         """Delete the local Git repository directory safely."""
@@ -382,11 +381,13 @@ class BatchFetchGit(TaskBatchFetch):
         git_clone_args = self["git_clone_args"]
         # git_clone_args += ["--recurse-submodules"]
 
-        cmd = (
-            ["git", "clone"]
-            + git_clone_args
-            + [self[self.main_key], str(self.git_local_dir)]
-        )
+        cmd = [
+            "git",
+            "clone",
+            *git_clone_args,
+            self[self.main_key],
+            str(self.git_local_dir),
+        ]
         self._run(cmd, cwd=".")
         self.set_changed(True)
 
@@ -480,11 +481,11 @@ class BatchFetchGit(TaskBatchFetch):
             )
 
             if strategy == "rebase":
-                self._run(["git", "rebase"] + [upstream_branch])
+                self._run(["git", "rebase", upstream_branch])
             elif strategy == "reset":
                 self._run(["git", "reset", "--hard", upstream_branch])
             else:
-                self._run(["git", "merge"] + self["git_merge_args"] + [upstream_branch])
+                self._run(["git", "merge", *self["git_merge_args"], upstream_branch])
 
             git_ref_after_update = self._git_ref(cwd=self.git_local_dir)
             if commit_ref_head != git_ref_after_update:
@@ -523,11 +524,8 @@ class BatchFetchGit(TaskBatchFetch):
     def _git_set_remote_url(self, url: str, remote_name: str = "origin") -> str:
         """Reconfigure or add a Git remote with a new target url."""
         origin_url = ""
-        try:
+        with contextlib.suppress(subprocess.CalledProcessError):
             self._run(["git", "remote", "remove", remote_name])
-        except subprocess.CalledProcessError:
-            # Ignore when it cannot be removed when it does not exist
-            pass
 
         try:
             stdout, _ = self._run(["git", "remote", "add", remote_name, url])
@@ -614,7 +612,7 @@ class BatchFetchGit(TaskBatchFetch):
 
             if needs_checkout:
                 # Update the branch
-                self._run(["git", "checkout"] + [self["revision"]])
+                self._run(["git", "checkout", self["revision"]])
                 self.add_output(
                     self.indent_spaces
                     + "[INFO] Branch changed to "
@@ -654,10 +652,8 @@ class BatchFetchGit(TaskBatchFetch):
             # because removing the remote drops the tracking configuration.
             upstream_branch = None
             if self.current_branch:
-                try:
+                with contextlib.suppress(BatchFetchError):
                     upstream_branch = self._get_upstream_branch()
-                except BatchFetchError:
-                    pass
 
             # Update remote
             try:
