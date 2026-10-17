@@ -28,22 +28,6 @@ from subprocess import PIPE, CalledProcessError, Popen, list2cmdline
 from typing import Any
 
 
-def md5sum(filename: os.PathLike) -> str:
-    """Calculate and return the MD5 checksum of a file.
-
-    Args:
-        filename: Path to the file for which the MD5 checksum is calculated.
-
-    Returns:
-        str: The MD5 checksum of the file.
-    """
-    md5 = hashlib.md5()
-    with Path(filename).open("rb") as file:
-        for chunk in iter(lambda: file.read(4096), b""):
-            md5.update(chunk)
-    return md5.hexdigest()
-
-
 def run_simple(cmd: list[str] | str, **kwargs: Any) -> tuple[list[str], list[str]]:
     """Execute a command and return stdout and stderr.
 
