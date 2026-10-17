@@ -53,8 +53,11 @@ class BatchFetchCli:
         cwd: Path | str,
     ) -> None:
         """Initialize the batchfetch command-line interface."""
-        os.chdir(cwd)
-        self._cwd = cwd
+        try:
+            os.chdir(cwd)
+        except OSError as err:
+            raise BatchFetchError(str(err)) from err
+        self._cwd = Path.cwd()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.targets = {Path(item).absolute() for item in targets}
         self.cfg: dict[str, Any] = {}
@@ -197,6 +200,7 @@ class BatchFetchCli:
                 raise BatchFetchError(err_str)
 
             dict_local_dir[str(dest_path)] = batchfetch_instance[keyword]
+            dict_local_dir[str(dest_path2)] = batchfetch_instance[keyword]
 
     # pylint: disable=too-many-branches
     # pylint: disable=too-many-statements
@@ -228,7 +232,7 @@ class BatchFetchCli:
 
                 targets_not_found = self.targets - targets_executed
                 if targets_not_found:
-                    err_str = "Error: Target(s) not found: "
+                    err_str = "Target(s) not found: "
                     err_str += ", ".join([str(item) for item in targets_not_found])
                     print(f"Error: {err_str}", file=sys.stderr)
                     sys.exit(1)
@@ -281,6 +285,8 @@ class BatchFetchCli:
             error = True
             executor_update.shutdown(cancel_futures=True)  # type: ignore
             raise
+        finally:
+            executor_update.shutdown(wait=True)
 
         if error:
             if failed:
@@ -314,6 +320,8 @@ class BatchFetchCli:
             local_ignore_untracked |= parents
 
         for tracked_dir, tracked_filenames in self.tracked_paths.items():
+            if not tracked_dir.is_dir():
+                continue
             actual_filenames = {file.name for file in tracked_dir.iterdir()}
             for filename in actual_filenames - tracked_filenames:
                 full_path = tracked_dir / filename
@@ -328,11 +336,12 @@ class BatchFetchCli:
         if untracked_paths:
             err_str = "The following files need to be deleted:\n"
             for path in untracked_paths:
+                try:
+                    rel_path = path.relative_to(self._cwd)
+                except ValueError:
+                    rel_path = path
                 err_str += (
-                    "  - "
-                    + str(path.relative_to(self._cwd))
-                    + ("/" if path.is_dir() else "")
-                    + "\n"
+                    "  - " + str(rel_path) + ("/" if path.is_dir() else "") + "\n"
                 )
             err_str += (
                 "The paths above are not managed by batchfetch."
@@ -357,7 +366,11 @@ def parse_args() -> argparse.Namespace:
     except KeyError:
         jobs = 5
     else:
-        jobs = int(jobs_env)
+        try:
+            jobs = int(jobs_env)
+        except ValueError:
+            jobs = 1
+
         if jobs <= 0:
             jobs = 1
 
@@ -446,8 +459,14 @@ def parse_args() -> argparse.Namespace:
 
     args = parser.parse_args()
 
+    if args.jobs <= 0:
+        args.jobs = 1
+
     if not args.file:
-        args.file = "./batchfetch.yaml"
+        if args.directory:
+            args.file = str(Path(args.directory) / "batchfetch.yaml")
+        else:
+            args.file = "./batchfetch.yaml"
 
     if not Path(args.file).is_file():
         print(f"Error: File not found: {args.file}", file=sys.stderr)
@@ -491,7 +510,7 @@ def command_line_interface() -> None:
                 cwd=args.directory,
             )
 
-            batchfetch_cli.load(file)
+            batchfetch_cli.load(file_abs)
             if not batchfetch_cli.run_tasks():
                 errno = 1
         except KeyboardInterrupt:
