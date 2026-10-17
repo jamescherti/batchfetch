@@ -81,6 +81,7 @@ class TaskBase:
             "error": False,
             "changed": False,
         }
+        self._values_initialized = True
 
     def validate_schema(self) -> None:
         """Validate the schema of the task data and options."""

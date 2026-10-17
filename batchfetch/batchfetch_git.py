@@ -103,6 +103,9 @@ class BatchFetchGit(TaskBatchFetch):
 
     def _initialize_data(self) -> None:
         """Initialize and parse the repository path data."""
+        if self._values_initialized:
+            return
+
         super()._initialize_data()
 
         self.values[self.main_key] = self.values[self.main_key].rstrip("/")
@@ -148,7 +151,7 @@ class BatchFetchGit(TaskBatchFetch):
                 # Update
                 self._verify_git_repo()
 
-                if self["git_update"]:
+                if self["git_update"] or is_clone:
                     # Pre exec
                     self._update_current_branch_name()
                     self._repo_fix_remote_origin()
@@ -161,7 +164,7 @@ class BatchFetchGit(TaskBatchFetch):
 
                 self._exec_before(cwd=self.git_local_dir)
 
-                if self["git_update"]:
+                if self["git_update"] or is_clone:
                     if not self["revision"]:
                         # Synchronize the local origin/HEAD with the remote
                         # repository
@@ -195,11 +198,13 @@ class BatchFetchGit(TaskBatchFetch):
                             + "'\n"
                         )
 
-                    git_fetch_done = self._repo_fetch()
+                    git_fetch_done = False
+                    if not is_clone:
+                        git_fetch_done = self._repo_fetch()
 
                     self._repo_fix_branch()
 
-                    if git_fetch_done:
+                    if self["git_update"] and git_fetch_done:
                         self._git_apply_update_strategy()
 
                 self._exec_after(cwd=self.git_local_dir)
@@ -343,7 +348,7 @@ class BatchFetchGit(TaskBatchFetch):
             # Not a symbolic ref
             self.current_branch = None
 
-        if self.current_branch:
+        if self.current_branch and self["revision"]:
             with contextlib.suppress(GitRevisionDoesNotExist):
                 # If the tag is annotated, it points to a tag object, not
                 # directly to a commit. You need to resolve it to the
@@ -654,9 +659,9 @@ class BatchFetchGit(TaskBatchFetch):
             # Update remote
             try:
                 self._git_set_remote_url(correct_origin_url)
-            except GitRemoteError:
-                # TODO handle errors
-                return
+                self.set_changed(True)
+            except GitRemoteError as err:
+                raise BatchFetchError(str(err)) from err
 
             # Get the current branch
             if self.current_branch:
@@ -699,11 +704,13 @@ class BatchFetchGit(TaskBatchFetch):
             if update_remote:
                 try:
                     self._git_set_remote_url(url=correct_url, remote_name=remote_name)
+                    self.set_changed(True)
                     self.add_output(
                         self.indent_spaces + f"[INFO] Remote '{remote_name}' "
                         f"set to {correct_url}\n"
                     )
                 except GitRemoteError as err:
+                    self.set_error(True)
                     self.add_output(
                         self.indent_spaces + "[ERROR] Failed to set "
                         f"remote '{remote_name}': {err}\n"
