@@ -20,8 +20,6 @@
 
 from __future__ import annotations
 
-import hashlib
-import os
 import shlex
 from pathlib import Path
 from subprocess import PIPE, CalledProcessError, Popen, list2cmdline
@@ -105,10 +103,7 @@ def run_indent(
 
 
 def collect_parent_dirs(base_dir: Path, directory: Path) -> set[Path]:
-    """Collect all parent directories of 'dir' until 'base_dir' is reached.
-
-    If 'dir' is not inside 'base_dir', return None.
-    """
+    """Collect all parent directories of 'dir' until 'base_dir' is reached."""
     parents: set[Path] = set()
 
     for dir_path, base_path in (
