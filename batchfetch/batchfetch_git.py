@@ -140,14 +140,12 @@ class BatchFetchGit(TaskBatchFetch):
             # Delete
             if self["delete"]:
                 self._repo_delete()
+            else:
+                # Clone
+                if is_clone:
+                    self._repo_clone()
 
-            # Clone
-            elif is_clone:
-                self._repo_clone()
-
-            # Update
-            # TODO elif?
-            if not self["delete"]:
+                # Update
                 self._verify_git_repo()
 
                 if self["git_update"]:
