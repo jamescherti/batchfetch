@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import os
 from copy import deepcopy
+from pathlib import Path
 from typing import Any
 
 from schema import Optional, Or, Schema
@@ -154,7 +155,7 @@ class TaskBatchFetch(TaskBase):
             stdout += "\n"
         self.add_output(stdout)
 
-    def _exec_before(self, cwd: os.PathLike = ".") -> None:
+    def _exec_before(self, cwd: Path | str = ".") -> None:
         """Execute pre-task commands defined in options and task items."""
         self._initialize_data()
         if self["delete"]:
@@ -170,7 +171,7 @@ class TaskBatchFetch(TaskBase):
         if cmd:
             self._local_task_exec(cmd, cwd=str(cwd))
 
-    def _exec_after(self, cwd: os.PathLike = ".") -> None:
+    def _exec_after(self, cwd: Path | str = ".") -> None:
         """Execute post-task commands if the task was changed successfully."""
         self._initialize_data()
         if self["delete"] or self.is_error() or not self.is_changed():
