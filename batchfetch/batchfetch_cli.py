@@ -200,7 +200,7 @@ class BatchFetchCli:
 
     # pylint: disable=too-many-branches
     # pylint: disable=too-many-statements
-    def run_tasks(self) -> bool:  # noqa: PLR0912, PLR0915
+    def run_tasks(self) -> bool:
         """Execute all configured tasks in parallel using a thread pool."""
         failed = []
         error = False

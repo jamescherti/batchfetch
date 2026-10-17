@@ -466,7 +466,7 @@ class BatchFetchGit(TaskBatchFetch):
             except KeyError:
                 strategy = "merge"
 
-            if strategy in ("rebase", "reset") and not self._is_working_tree_clean():
+            if strategy in {"rebase", "reset"} and not self._is_working_tree_clean():
                 raise BatchFetchError(
                     f"Working tree is not clean. Aborting {strategy} to "
                     "prevent data loss."
