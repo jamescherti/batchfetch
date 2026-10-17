@@ -52,7 +52,6 @@ class BatchFetchGit(TaskBatchFetch):
         self._git_fetch_origin_done = False
 
         self.branch_commit_ref: str | None = None
-        self.is_branch = False
 
         super().__init__(*args, **kwargs)
         self.env["GIT_TERMINAL_PROMPT"] = "0"
@@ -342,11 +341,9 @@ class BatchFetchGit(TaskBatchFetch):
             # This returns the branch name
             stdout, _ = self._run(["git", "symbolic-ref", "--short", "HEAD"])
             self.current_branch = stdout[0]
-            self.is_branch = True
         except (IndexError, subprocess.CalledProcessError):
             # Not a symbolic ref
             self.current_branch = None
-            self.is_branch = False
 
         if self.current_branch:
             with contextlib.suppress(GitRevisionDoesNotExist):

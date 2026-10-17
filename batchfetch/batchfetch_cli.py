@@ -50,7 +50,7 @@ class BatchFetchCli:
         verbose: bool,
         check_untracked: bool,
         targets: list[str],
-        cwd: os.PathLike,
+        cwd: Path | str,
     ) -> None:
         """Initialize the batchfetch command-line interface."""
         os.chdir(cwd)
@@ -111,7 +111,7 @@ class BatchFetchCli:
         # pylint: disable=too-many-try-statements
         try:
             with path.open(encoding="utf-8") as fhandler:
-                yaml_dict: Any = yaml.load(fhandler, Loader=yaml.FullLoader)
+                yaml_dict: Any = yaml.safe_load(fhandler)
                 if not isinstance(yaml_dict, dict):
                     print(f"Error: Invalid format: {yaml_dict}.", file=sys.stderr)
                     sys.exit(1)
@@ -280,6 +280,7 @@ class BatchFetchCli:
         except KeyboardInterrupt:
             error = True
             executor_update.shutdown(cancel_futures=True)  # type: ignore
+            raise
 
         if error:
             if failed:
@@ -357,6 +358,8 @@ def parse_args() -> argparse.Namespace:
         jobs = 5
     else:
         jobs = int(jobs_env)
+        if jobs <= 0:
+            jobs = 1
 
     # Check untracked
     try:
@@ -391,7 +394,7 @@ def parse_args() -> argparse.Namespace:
             "Specify the batchfetch YAML file "
             "(default: './batchfetch.yaml')."
             "Alternatively, the BATCHFETCH_FILE environment variable can be "
-            "used to configure the number of jobs."
+            "used to configure the batchfetch YAML file."
         ),
     )
 
@@ -494,7 +497,7 @@ def command_line_interface() -> None:
         except KeyboardInterrupt:
             print("Interrupted.", file=sys.stderr)
             errno = 1
-        except (yaml.error.MarkedYAMLError, BatchFetchError) as err:
+        except (yaml.YAMLError, BatchFetchError) as err:
             print(f"Error: {err}.", file=sys.stderr)
             errno = 1
 
