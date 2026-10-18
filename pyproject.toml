@@ -49,12 +49,12 @@ classifiers = [
   "Topic :: Utilities",
 ]
 dependencies = [
-  "colorama",
   "schema",
   "PyYAML",
 ]
 
 [project.optional-dependencies]
+colorama = ["colorama"]
 setproctitle = ["setproctitle"]
 
 [project.urls]

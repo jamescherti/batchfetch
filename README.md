@@ -5,18 +5,32 @@
 
 [Batchfetch](https://github.com/jamescherti/batchfetch) is a command-line tool to clone, fetch, and merge multiple Git repositories simultaneously. With Batchfetch, you no longer need to manually manage each repository one by one. It automates the tedious aspects of repository management.
 
-But why use Batchfetch? Because it is extremely fast, cloning repositories quickly by running Git operations in parallel. It intelligently detects whether a `git fetch` is needed, further speeding up the process of downloading data from repositories. Additionally, it allows specifying the revision (for Git), ensuring that the cloned repository matches the exact version you require.
+Batchfetch is designed for performance, cloning repositories quickly by executing Git operations in parallel. It intelligently detects whether a `git fetch` is needed, further speeding up the process of synchronizing data from repositories. Additionally, it allows specifying the revision (branch, tag, or commit hash), ensuring that the cloned repository matches the exact version you require.
 
-Batchfetch is ideal for quickly cloning or pulling multiple Git repositories. It is also useful for cloning various addons, such as Vim plugins, Emacs packages, Ansible roles, Ansible collections, and other addons available on websites like GitHub, Codeberg, and GitLab.
+Batchfetch is ideal for quickly cloning or pulling multiple Git repositories. It is also useful for cloning various addons, such as Vim plugins, Emacs packages, Ansible roles, Ansible collections, and other dependencies available on Git hosting services like GitHub, Codeberg, and GitLab.
 
 ## Installation
 
 Here is how to install *batchfetch* using [pip](https://pypi.org/project/pip/):
+
 ```
 pip install --user batchfetch
 ```
 
 The pip command above installs the *batchfetch* executable in the `~/.local/bin/` directory. Omitting the `--user` flag will install it system-wide.
+
+### Optional dependencies
+
+Batchfetch supports optional dependencies:
+
+* `colorama`: Enables colored console output for better readability.
+* `setproctitle`: Updates the process title to reflect the running command.
+
+To install *batchfetch* with all optional features, append them in brackets:
+
+```bash
+pip install --user "batchfetch[colorama,setproctitle]"
+```
 
 ## Usage
 
