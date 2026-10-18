@@ -57,6 +57,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/jamescherti/batchfetch"
+Repository = "https://github.com/jamescherti/batchfetch"
 
 [project.scripts]
 batchfetch = "batchfetch.batchfetch_cli:command_line_interface"
