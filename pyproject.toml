@@ -51,9 +51,11 @@ classifiers = [
 dependencies = [
   "colorama",
   "schema",
-  "setproctitle",
   "PyYAML",
 ]
+
+[project.optional-dependencies]
+setproctitle = ["setproctitle"]
 
 [project.urls]
 Homepage = "https://github.com/jamescherti/batchfetch"
