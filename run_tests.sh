@@ -25,7 +25,8 @@ cd "$SCRIPT_DIR"
 export PYTHONPATH
 PYTHONPATH="$(pwd)"
 
-exec pytest -p no:libtmux -v -v --cov=batchfetch --cov=tests \
+ruff check batchfetch/*py
+exec pytest -p no:libtmux -v --cov=batchfetch --cov=tests \
   --cov-report=term \
   --cov-report=html:htmlcov \
   tests/test_*py

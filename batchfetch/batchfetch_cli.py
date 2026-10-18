@@ -29,10 +29,24 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
-import colorama
 import yaml  # type: ignore
-from colorama import Fore
 from schema import Optional, Or, Schema, SchemaError
+
+try:
+    import colorama
+    from colorama import Fore
+
+    HAS_COLORAMA = True
+except ImportError:
+    HAS_COLORAMA = False
+
+    class _ForeMock:
+        RED = ""
+        YELLOW = ""
+        GREEN = ""
+        RESET = ""
+
+    Fore = _ForeMock()  # type: ignore
 
 try:
     from setproctitle import setproctitle
@@ -492,7 +506,9 @@ def command_line_interface() -> None:
             format="%(asctime)s %(name)s: %(message)s",
         )
 
-        colorama.init()
+        if HAS_COLORAMA:
+            colorama.init()
+
         if HAS_SETPROCTITLE:
             setproctitle(
                 subprocess.list2cmdline([Path(sys.argv[0]).name, *sys.argv[1:]])
