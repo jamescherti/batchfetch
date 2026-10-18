@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 #
 # Copyright (C) 2024-2026 James Cherti
 # URL: https://github.com/jamescherti/batchfetch
@@ -18,9 +18,6 @@
 
 set -u
 set -e
-
-SCRIPT_DIR=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
-cd "$SCRIPT_DIR"
 
 export PYTHONPATH
 PYTHONPATH="$(pwd)"
