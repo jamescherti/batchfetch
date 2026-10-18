@@ -21,7 +21,7 @@ from pathlib import Path
 
 from batchfetch import helpers
 
-DATA_PATH = Path(".").joinpath("tests", "data").absolute()
+DATA_PATH = Path().joinpath("tests", "data").absolute()
 SCRIPT_RUN_SIMPLE = DATA_PATH / "test-run_simple.sh"
 
 
