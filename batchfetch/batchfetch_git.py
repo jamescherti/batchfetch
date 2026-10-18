@@ -69,7 +69,7 @@ class BatchFetchGit(TaskBatchFetch):
                 Optional("git_clone_args"): [str],
                 Optional("git_merge_args"): [str],
                 Optional("git_update"): bool,
-                Optional("git_update_strategy"): Or("merge", "rebase", "reset"),
+                Optional("git_update_strategy"): Or("merge", "rebase", "reset"),  # type: ignore
             }
         )
 
@@ -79,7 +79,7 @@ class BatchFetchGit(TaskBatchFetch):
                 Optional("git_clone_args"): [str],
                 Optional("git_merge_args"): [str],
                 Optional("git_update"): bool,
-                Optional("git_update_strategy"): Or("merge", "rebase", "reset"),
+                Optional("git_update_strategy"): Or("merge", "rebase", "reset"),  # type: ignore
             }
         )
 
