@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Copyright (C) 2024-2026 James Cherti
 # URL: https://github.com/jamescherti/batchfetch
@@ -33,7 +33,13 @@ import colorama
 import yaml  # type: ignore
 from colorama import Fore
 from schema import Optional, Or, Schema, SchemaError
-from setproctitle import setproctitle
+
+try:
+    from setproctitle import setproctitle
+
+    HAS_SETPROCTITLE = True
+except ImportError:
+    HAS_SETPROCTITLE = False
 
 from .batchfetch_base import BatchFetchError
 from .batchfetch_git import BatchFetchGit
@@ -487,7 +493,10 @@ def command_line_interface() -> None:
         )
 
         colorama.init()
-        setproctitle(subprocess.list2cmdline([Path(sys.argv[0]).name, *sys.argv[1:]]))
+        if HAS_SETPROCTITLE:
+            setproctitle(
+                subprocess.list2cmdline([Path(sys.argv[0]).name, *sys.argv[1:]])
+            )
 
         args = parse_args()
         file = Path(args.file)
