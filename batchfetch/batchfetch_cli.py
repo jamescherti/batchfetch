@@ -400,7 +400,12 @@ def parse_args() -> argparse.Namespace:
     except KeyError:
         check_untracked = False
     else:
-        check_untracked = bool(check_untracked_env)
+        # Values such as "0", "false", "no" or "off" disable the check;
+        # bool("0") is True, so an explicit comparison is required.
+        check_untracked = (
+            check_untracked_env.strip().lower()
+            not in ("", "0", "false", "no", "off")
+        )
 
     desc = "Efficiently clone/pull multiple Git repositories in parallel."
     usage = "%(prog)s [--option] [TARGET]"

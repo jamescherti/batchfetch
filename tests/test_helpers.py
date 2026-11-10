@@ -17,7 +17,10 @@
 #
 """Unit tests."""
 
+import sys
 from pathlib import Path
+
+import pytest
 
 from batchfetch import helpers
 
@@ -29,3 +32,23 @@ def test_indent_raw_output() -> None:
     """Test the indent_raw_output helper function."""
     list_str = helpers.indent_raw_output(["Test 1.", "Test 2."])
     assert list_str == ["    Test 1.", "    Test 2."]
+
+
+def test_parse_args_check_untracked_env_values(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test that BATCHFETCH_CHECK_UNTRACKED=0 does not enable the check."""
+    from batchfetch import batchfetch_cli
+
+    cfg_file = tmp_path / "batchfetch.yaml"
+    cfg_file.write_text("tasks: []\n", encoding="utf-8")
+
+    monkeypatch.setattr(sys, "argv", ["batchfetch", "-f", str(cfg_file)])
+    monkeypatch.setenv("BATCHFETCH_CHECK_UNTRACKED", "0")
+    assert batchfetch_cli.parse_args().check_untracked is False
+
+    monkeypatch.setenv("BATCHFETCH_CHECK_UNTRACKED", "false")
+    assert batchfetch_cli.parse_args().check_untracked is False
+
+    monkeypatch.setenv("BATCHFETCH_CHECK_UNTRACKED", "1")
+    assert batchfetch_cli.parse_args().check_untracked is True
