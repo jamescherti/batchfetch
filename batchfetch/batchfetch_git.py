@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import re
 import shutil
 import subprocess
 import textwrap
@@ -84,9 +85,10 @@ class BatchFetchGit(TaskBatchFetch):
         )
 
         # Data
-        self.global_options_values.update(
-            {"git_clone_args": [], "git_merge_args": [], "git_update": True}
-        )
+        # Apply defaults only to options the caller omitted.
+        self.global_options_values.setdefault("git_clone_args", [])
+        self.global_options_values.setdefault("git_merge_args", [])
+        self.global_options_values.setdefault("git_update", True)
 
         self.task_default_values.update(
             {
@@ -342,7 +344,7 @@ class BatchFetchGit(TaskBatchFetch):
     def _git_ref(self, cwd: Path | None = None) -> str:
         """Get the commit revision of HEAD.
 
-        The command will fail if the branch is detached.
+        A detached HEAD also resolves to its checked-out commit.
         """
         cmd = ["git", "show-ref", "--head", "--verify", "HEAD"]
         try:
@@ -538,19 +540,16 @@ class BatchFetchGit(TaskBatchFetch):
 
     def _git_set_remote_url(self, url: str, remote_name: str = "origin") -> str:
         """Reconfigure or add a Git remote with a new target url."""
-        origin_url = ""
-        with contextlib.suppress(subprocess.CalledProcessError):
-            self._run(["git", "remote", "remove", remote_name])
-
+        # Keep existing fetch refspecs, tracking branches, and push URLs.
         try:
-            stdout, _ = self._run(["git", "remote", "add", remote_name, url])
-            origin_url = stdout[0] if stdout else ""
-        except (subprocess.CalledProcessError, IndexError) as err:
+            remotes, _ = self._run(["git", "remote"])
+            action = "set-url" if remote_name in remotes else "add"
+            self._run(["git", "remote", action, "--", remote_name, url])
+        except subprocess.CalledProcessError as err:
             raise GitRemoteError(
                 f"Failed to modify the Git remote url: {remote_name}"
             ) from err
-
-        return origin_url
+        return url
 
     def _git_is_local_branch(self, branch: str) -> bool:
         """Return True if it is a local branch that exists."""
@@ -570,10 +569,23 @@ class BatchFetchGit(TaskBatchFetch):
 
     def _git_rev_parse_verify(self, revision: str) -> list[str]:
         """Verify and return the parsed reference for a git revision."""
+        # A missing full ref must not resolve to a tag named after that ref.
+        ref = revision.removesuffix("^{commit}")
+        if ref.startswith("refs/") and not any(char in ref for char in "^~:@"):
+            try:
+                self._run(["git", "show-ref", "--verify", "--quiet", ref])
+            except subprocess.CalledProcessError as err:
+                if err.returncode != 1:
+                    raise
+                raise GitRevisionDoesNotExist(
+                    f"The ref '{ref}' does not exist."
+                ) from err
         stdout: list[str] = []
         error = False
         try:
-            stdout, _ = self._run(["git", "rev-parse", "--verify", revision])
+            stdout, _ = self._run(
+                ["git", "rev-parse", "--verify", "--end-of-options", revision]
+            )
             if not stdout:
                 error = True
         except subprocess.CalledProcessError:
@@ -709,6 +721,13 @@ class BatchFetchGit(TaskBatchFetch):
         if revision.startswith("refs/") and not revision.startswith("refs/heads/"):
             return None
         branch = revision.removeprefix("refs/heads/")
+        # Git gives a native full object ID precedence over a same-named ref.
+        if not revision.startswith("refs/") and re.fullmatch(
+            r"(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})", revision
+        ):
+            head = self._run_get_firstline(["git", "rev-parse", "--verify", "HEAD"])
+            if len(revision) == len(head):
+                return None
         if branch == "HEAD":
             return None
 
