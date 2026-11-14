@@ -154,6 +154,15 @@ class BatchFetchGit(TaskBatchFetch):
                 if self["git_update"] or is_clone:
                     # Pre exec
                     self._update_current_branch_name()
+
+                    if (
+                        not is_clone
+                        and self["revision"]
+                        and self._matches_revision(self["revision"])
+                    ):
+                        self.add_output(self.indent_spaces + "[INFO] Nothing to do.\n")
+                        return self.values
+
                     self._repo_fix_remote_origin()
                     self._repo_fix_remotes()
                 elif not is_clone:
@@ -204,7 +213,12 @@ class BatchFetchGit(TaskBatchFetch):
 
                     self._repo_fix_branch()
 
-                    if self["git_update"] and git_fetch_done:
+                    if (
+                        self["git_update"]
+                        and git_fetch_done
+                        and self._revision_branch_ref(self["revision"])
+                    ):
+                        self._update_current_branch_name()
                         self._git_apply_update_strategy()
 
                 self._exec_after(cwd=self.git_local_dir)
@@ -342,8 +356,8 @@ class BatchFetchGit(TaskBatchFetch):
         """Update instance variables with the current branch and commit."""
         try:
             # This returns the branch name
-            stdout, _ = self._run(["git", "symbolic-ref", "--short", "HEAD"])
-            self.current_branch = stdout[0]
+            stdout, _ = self._run(["git", "symbolic-ref", "HEAD"])
+            self.current_branch = stdout[0].removeprefix("refs/heads/")
         except (IndexError, subprocess.CalledProcessError):
             # Not a symbolic ref
             self.current_branch = None
@@ -572,61 +586,35 @@ class BatchFetchGit(TaskBatchFetch):
 
     def _repo_fix_branch(self) -> bool:
         """Check out the correct revision branch if current branch differs."""
-        git_ref_after_merge = self._git_ref(cwd=self.git_local_dir)
-        branch_changed = False
-        if self["revision"]:
-            # We also need tags because sometimes, a branch
-            # returns a different commit revision
-            git_tags, _ = self._run(["git", "tag", "--points-at", "HEAD"])
+        # A fresh clone may already be at the requested commit.
+        revision = self["revision"]
+        if not revision or self._matches_revision(revision):
+            return False
 
-            is_branch = False
-            # Also check the commit revision in case
-            # branch is a commit revision instead of a tag
+        # Update the branch
+        # A full refs/heads/ name would detach HEAD during checkout.
+        branch = revision.removeprefix("refs/heads/")
+        branch_ref = self._revision_branch_ref(revision)
+        if branch_ref == f"refs/heads/{branch}":
+            self._run(["git", "checkout", branch, "--"])
+        elif branch_ref:
+            self._run(["git", "checkout", "--track", "-b", branch, branch_ref])
+        else:
+            # Check if the commit ref exists
             try:
-                # Check if the branch exists remotely
-                git_ref_branch = self._git_rev_parse_verify(
-                    "origin/" + self["revision"] + "^{commit}"
-                )[0]
-                is_branch = True
-            except GitRevisionDoesNotExist:
-                # Check if the commit ref exists
-                try:
-                    git_ref_branch = self._git_rev_parse_verify(self["revision"])[0]
-                    if self._git_is_local_branch(self["revision"]):
-                        is_branch = True
-                except GitRevisionDoesNotExist as err:
-                    raise BatchFetchError(
-                        f"The branch '{self['revision']}' does not exist."
-                    ) from err
+                commit = self._git_rev_parse_verify(f"{revision}^{{commit}}")[0]
+            except GitRevisionDoesNotExist as err:
+                raise BatchFetchError(
+                    f"The revision '{revision}' does not exist."
+                ) from err
+            self._run(["git", "checkout", "--detach", commit])
 
-            needs_checkout = False
-            if self.current_branch != self["revision"]:  # noqa: SIM102
-                if (
-                    is_branch
-                    or self.current_branch is not None
-                    or (
-                        git_ref_after_merge != git_ref_branch
-                        and self["revision"] not in git_tags
-                    )
-                ):
-                    needs_checkout = True
+        self.add_output(self.indent_spaces + f"[INFO] Branch changed to {revision}\n")
+        self.set_changed(True)
 
-            if needs_checkout:
-                # Update the branch
-                self._run(["git", "checkout", self["revision"]])
-                self.add_output(
-                    self.indent_spaces
-                    + "[INFO] Branch changed to "
-                    + self["revision"]
-                    + "\n"
-                )
-                self.set_changed(True)
-                branch_changed = True
-
-                # Read branch again
-                self._update_current_branch_name()
-
-        return branch_changed
+        # Read branch again
+        self._update_current_branch_name()
+        return True
 
     def _git_fetch_origin(self) -> None:
         """Execute `git fetch origin` if it has not already been done."""
@@ -715,3 +703,46 @@ class BatchFetchGit(TaskBatchFetch):
                         self.indent_spaces + "[ERROR] Failed to set "
                         f"remote '{remote_name}': {err}\n"
                     )
+
+    def _revision_branch_ref(self, revision: str) -> str | None:
+        """Return the exact local or origin branch ref for REVISION, if present."""
+        if revision.startswith("refs/") and not revision.startswith("refs/heads/"):
+            return None
+        branch = revision.removeprefix("refs/heads/")
+        if branch == "HEAD":
+            return None
+
+        # Check if the branch exists remotely
+        for branch_ref in (f"refs/heads/{branch}", f"refs/remotes/origin/{branch}"):
+            try:
+                self._run(["git", "show-ref", "--verify", "--quiet", branch_ref])
+            except subprocess.CalledProcessError as err:
+                if err.returncode != 1:
+                    raise
+            else:
+                return branch_ref
+        return None
+
+    def _matches_revision(self, revision: str) -> bool:
+        """Return whether the current checkout satisfies REVISION."""
+        # We also need tags because sometimes, a branch
+        # returns a different commit revision
+        if self._revision_branch_ref(revision):
+            branch = revision.removeprefix("refs/heads/")
+            try:
+                head_ref = self._run_get_firstline(
+                    ["git", "symbolic-ref", "-q", "HEAD"]
+                )
+            except subprocess.CalledProcessError as err:
+                if err.returncode != 1:
+                    raise
+                return False
+            return head_ref == f"refs/heads/{branch}"
+
+        # Also check the commit revision in case
+        # branch is a commit revision instead of a tag
+        try:
+            target = self._git_rev_parse_verify(f"{revision}^{{commit}}")[0]
+        except GitRevisionDoesNotExist:
+            return False
+        return self._git_ref() == target
