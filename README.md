@@ -54,7 +54,7 @@ tasks:
   # Clone the s.el repository to the './another-name.el' directory
   - git: https://github.com/jamescherti/easysession.el
     path: easysession
-    revision: b9c6d9b6134b4981760893254f804a371ffbc899
+    revision: b9c6d9b61.4.5981760893254f804a371ffbc899
 
   # Delete the local copy of the following repository
   - git: https://github.com/jamescherti/dir-config.el
@@ -142,7 +142,7 @@ Batchfetch is fast, not only because it runs Git commands in parallel, but also 
 
 When the user has specifies a revision (branch or commit reference), Batchfetch only performs a `git fetch` if that revision does not exist locally. If the revision is already up to date, it simply proceeds to the next repository in the queue.
 
-That's why it is highly recommended to always specify the revision to speed up Batchfetch, if speed is important to you. Here is an example of a `batchfetch.yaml` file where the branch (`1.1.0`) or commit reference (`b9c6d9b6134b4981760893254f804a371ffbc899`) is specified:
+That's why it is highly recommended to always specify the revision to speed up Batchfetch, if speed is important to you. Here is an example of a `batchfetch.yaml` file where the branch (`1.1.0`) or commit reference (`b9c6d9b61.4.5981760893254f804a371ffbc899`) is specified:
 
 ```yaml
 tasks:
@@ -151,7 +151,7 @@ tasks:
 
   - git: https://github.com/jamescherti/easysession.el
     path: easysession
-    revision: b9c6d9b6134b4981760893254f804a371ffbc899
+    revision: b9c6d9b61.4.5981760893254f804a371ffbc899
 ```
 
 ### How to customize Git clone, merge, and update strategies?
